@@ -2,19 +2,25 @@ package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
 import java.io.Serializable;
 
-/**
- * Created by marc on 9/5/16.
- */
 public class Post implements Serializable {
 
+    public int id;
     public String content;
+    public String postedAt;
     public String ownerName;
+    public int votesUp;
+    public int votesDown;
     public String[] tags;
 
-    public Post(String text, String username, String[] postTags) {
+    public Post(int postId, String text, String timePosted, String username,
+                int upvotes, int downvotes, String postTags) {
+        id = postId;
         content = text;
+        postedAt = timePosted;
         ownerName = username;
-        tags = postTags;
+        votesUp = upvotes;
+        votesDown = downvotes;
+        tags = postTags.split(",");
     }
 
 }

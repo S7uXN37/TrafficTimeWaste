@@ -14,12 +14,6 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 public class TipBrowser extends AppCompatActivity {
-    //TODO replace with GET request
-    Post[] samplePosts = new Post[]{
-            new Post("Pumpe isch voll geil", "lenny", new String[]{"swag", "bizeps"}),
-            new Post("Velofahre isch huere cool", "simon", new String[]{"bike", "chillig"}),
-            new Post("Atombombe baue findi lustig", "saemi", new String[]{"boom", "ups sorry"})
-    };
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -52,12 +46,11 @@ public class TipBrowser extends AppCompatActivity {
     }
 
     /**
-     * A placeholder fragment containing a simple view.
+     * The fragment holding the tip
      */
     public static class TipFragment extends Fragment {
         /**
-         * The fragment argument representing the section number for this
-         * fragment.
+         * The fragment argument representing the post being displayed
          */
         private static final String ARG_POST = "post_object";
 
@@ -65,8 +58,7 @@ public class TipBrowser extends AppCompatActivity {
         }
 
         /**
-         * Returns a new instance of this fragment for the given section
-         * number.
+         * Returns a new instance of this fragment for the given post
          */
         public static TipFragment newInstance(Post content) {
             TipFragment fragment = new TipFragment();
@@ -79,18 +71,36 @@ public class TipBrowser extends AppCompatActivity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
+            // inflate view
             View rootView = inflater.inflate(R.layout.fragment_tip_browser, container, false);
 
+            // get Post
             if (!(getArguments().getSerializable(ARG_POST) instanceof Post))
                 throw new IllegalArgumentException("ARG_POST must be of type Post");
-
             Post post = (Post) getArguments().getSerializable(ARG_POST);
 
             if (post == null)
                 throw new IllegalArgumentException("Post cannot be NULL");
 
-            TextView textView = (TextView) rootView.findViewById(R.id.section_label);
-            textView.setText(post.content);
+            // update fields
+            // content
+            ((TextView) rootView.findViewById(R.id.content))
+                .setText(post.content);
+
+            // date
+            ((TextView) rootView.findViewById(R.id.date))
+                    .setText(post.postedAt);
+
+            // owner
+            ((TextView) rootView.findViewById(R.id.ownerName))
+                    .setText(post.ownerName);
+
+            // votes TODO
+
+
+            // tags TODO
+
+
             return rootView;
         }
     }

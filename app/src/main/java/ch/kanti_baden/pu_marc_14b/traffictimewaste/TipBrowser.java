@@ -1,5 +1,7 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
+import android.app.ProgressDialog;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 
 import android.support.v4.app.Fragment;
@@ -13,7 +15,11 @@ import android.view.ViewGroup;
 
 import android.widget.TextView;
 
+import com.android.volley.VolleyError;
+
 public class TipBrowser extends AppCompatActivity {
+
+    private static final String ARG_POSTS = "posts";
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -24,10 +30,6 @@ public class TipBrowser extends AppCompatActivity {
      * {@link android.support.v4.app.FragmentStatePagerAdapter}.
      */
     private SectionsPagerAdapter mSectionsPagerAdapter;
-
-    /**
-     * The {@link ViewPager} that will host the section contents.
-     */
     private ViewPager mViewPager;
 
     @Override
@@ -35,31 +37,48 @@ public class TipBrowser extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tip_browser);
 
-        // Create the adapter that will return a fragment for each of the three
-        // primary sections of the activity.
-        mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager(), samplePosts);
+        final ProgressDialog progressDialog = ProgressDialog.show(this, "Loading posts...", "Please wait", true, false);
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
 
-        // Set up the ViewPager with the sections adapter.
-        mViewPager = (ViewPager) findViewById(R.id.container);
-        mViewPager.setAdapter(mSectionsPagerAdapter);
+        DatabaseLink.DatabaseListener listener = new DatabaseLink.DatabaseListener() {
+            @Override
+            void onGetPosts(Post[] posts) {
+                if (progressDialog != null && progressDialog.isShowing())
+                    progressDialog.dismiss();
 
+                // set up PagerAdapter
+                mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager(), posts);
+
+                // Set up the ViewPager with the sections adapter.
+                mViewPager = (ViewPager) findViewById(R.id.container);
+                mViewPager.setAdapter(mSectionsPagerAdapter);
+            }
+
+            @Override
+            void onError(VolleyError error) {
+                if (progressDialog != null && progressDialog.isShowing())
+                    progressDialog.dismiss();
+
+                new AlertDialog.Builder(progressDialog.getContext())
+                        .setTitle("Error")
+                        .setMessage(error.getMessage())
+                        .show();
+            }
+        };
+
+        new DatabaseLink(this).getAllPosts(listener);
     }
 
     /**
      * The fragment holding the tip
      */
     public static class TipFragment extends Fragment {
-        /**
-         * The fragment argument representing the post being displayed
-         */
+
         private static final String ARG_POST = "post_object";
 
         public TipFragment() {
         }
 
-        /**
-         * Returns a new instance of this fragment for the given post
-         */
         public static TipFragment newInstance(Post content) {
             TipFragment fragment = new TipFragment();
             Bundle args = new Bundle();

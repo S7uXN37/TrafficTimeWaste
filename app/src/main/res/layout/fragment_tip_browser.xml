@@ -9,10 +9,12 @@
     tools:context=".TipBrowserActivity$TipFragment">
 
     <TextView
-        android:id="@+id/content"
+        android:id="@+id/detail_content"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="This is a default content." />
+        android:text="This is a default content."
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true" />
 
     <TextView
         android:id="@+id/date"
@@ -20,7 +22,6 @@
         android:layout_height="wrap_content"
         android:text="2016-09-14 09:51:32"
         android:layout_alignTop="@+id/ownerName"
-        android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
 
     <TextView
@@ -29,7 +30,6 @@
         android:layout_height="wrap_content"
         android:text="testUser1234"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true" />
 
 </RelativeLayout>

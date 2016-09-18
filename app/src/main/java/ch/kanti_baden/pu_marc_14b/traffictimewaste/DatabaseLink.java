@@ -1,5 +1,6 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
+import android.app.Activity;
 import android.content.Context;
 import android.net.http.SslCertificate;
 import android.net.http.SslError;
@@ -44,18 +45,19 @@ public class DatabaseLink {
 
     public static final String GET_ALL_URL = "https://stuxnet.byethost13.com/PU/get_all_posts.php";
 
-    private Context context;
+    private Activity activity;
     private X509TrustManager[] trustManagers;
+    private WebView lastWebView;
 
-    public DatabaseLink(Context context) {
-        this.context = context;
+    public DatabaseLink(Activity parentActivity) {
+        activity = parentActivity;
         try {
             // Load CA certificate
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
             Certificate ca;
             try (InputStream caInput =
-                         new BufferedInputStream(context.getResources().openRawResource(R.raw.cert_intermediate_ca))) {
+                         new BufferedInputStream(parentActivity.getResources().openRawResource(R.raw.cert_intermediate_ca))) {
                 ca = cf.generateCertificate(caInput);
                 Log.v("TrafficTimeWaste", "CA=" + ((X509Certificate) ca).getSubjectDN());
             } catch (IOException e) {
@@ -83,69 +85,76 @@ public class DatabaseLink {
     }
 
     public void getAllPosts(final DatabaseListener databaseListener) {
-        // Create a WebView to load page and execute contained JavaScript
-        WebView webView = new WebView(context);
-        webView.getSettings().setJavaScriptEnabled(true);
-        // Add JavaScriptInterface to return JSON
-        webView.addJavascriptInterface(new JsonGrabberJavaScriptInterface(databaseListener), "JsonGrabber");
-
-        // Add WebViewClient to handle certificate verification and return response JSON
-        webView.setWebViewClient(new WebViewClient() {
+        Runnable run = new Runnable() {
             @Override
-            public void onPageFinished(WebView view, String url) {
-                // Called after page is done loading, inject JavaScript to send JSON to JavaScriptInterface
-                // Produces error and doesn't invoke listener if no JSON is found
-                Log.v("TrafficTimeWaste", "Page finished, injecting JavaScript...");
-                view.loadUrl("javascript:window.JsonGrabber.submitJson(document.getElementsByTagName('json')[0].innerHTML);");
-            }
+            public void run() {
+                // Create a WebView to load page and execute contained JavaScript
+                WebView webView = new WebView(activity);
+                webView.getSettings().setJavaScriptEnabled(true);
+                // Add JavaScriptInterface to return JSON
+                webView.addJavascriptInterface(new JsonGrabberJavaScriptInterface(databaseListener), "JsonGrabber");
 
-            @Override
-            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                // SSL certificate was not trusted, check against trustManagers
-
-                // Extract X509Certificate from SslError
-                Bundle bundle = SslCertificate.saveState(error.getCertificate());
-                X509Certificate x509Certificate;
-                byte[] bytes = bundle.getByteArray("x509-certificate");
-                if (bytes == null) {
-                    x509Certificate = null;
-                } else {
-                    try {
-                        CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
-                        Certificate cert = certFactory.generateCertificate(new ByteArrayInputStream(bytes));
-                        x509Certificate = (X509Certificate) cert;
-                    } catch (CertificateException e) {
-                        x509Certificate = null;
+                // Add WebViewClient to handle certificate verification and return response JSON
+                webView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public void onPageFinished(WebView view, String url) {
+                        // Called after page is done loading, inject JavaScript to send JSON to JavaScriptInterface
+                        // Produces error and doesn't invoke listener if no JSON is found
+                        Log.v("TrafficTimeWaste", "Page finished, injecting JavaScript...");
+                        view.loadUrl("javascript:window.JsonGrabber.submitJson(document.getElementsByTagName('json')[0].innerHTML);");
                     }
-                }
 
-                // Check against each TrustManager, stop as soon as it's trusted
-                boolean trusted = false;
-                for (int i = 0; i < trustManagers.length && !trusted; i++) {
-                    X509TrustManager tm = trustManagers[i];
-                    try {
-                        tm.checkServerTrusted(new X509Certificate[]{x509Certificate}, "RSA");
-                        trusted = true;
-                    } catch (CertificateException e) {
-                        Log.v("TrafficTimeWaste", "Verification failed at i="+i+", error: " + e.getMessage());
+                    @Override
+                    public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                        // SSL certificate was not trusted, check against trustManagers
+
+                        // Extract X509Certificate from SslError
+                        Bundle bundle = SslCertificate.saveState(error.getCertificate());
+                        X509Certificate x509Certificate;
+                        byte[] bytes = bundle.getByteArray("x509-certificate");
+                        if (bytes == null) {
+                            x509Certificate = null;
+                        } else {
+                            try {
+                                CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+                                Certificate cert = certFactory.generateCertificate(new ByteArrayInputStream(bytes));
+                                x509Certificate = (X509Certificate) cert;
+                            } catch (CertificateException e) {
+                                x509Certificate = null;
+                            }
+                        }
+
+                        // Check against each TrustManager, stop as soon as it's trusted
+                        boolean trusted = false;
+                        for (int i = 0; i < trustManagers.length && !trusted; i++) {
+                            X509TrustManager tm = trustManagers[i];
+                            try {
+                                tm.checkServerTrusted(new X509Certificate[]{x509Certificate}, "RSA");
+                                trusted = true;
+                            } catch (CertificateException e) {
+                                Log.v("TrafficTimeWaste", "Verification failed at i="+i+", error: " + e.getMessage());
+                            }
+                        }
+
+                        // Callback to handler
+                        if (trusted) {
+                            Log.v("TrafficTimeWaste", "Manually trusting certificate: " + error.getCertificate().toString());
+                            handler.proceed();
+                        } else {
+                            Log.v("TrafficTimeWaste", "SSl error: " + error.toString());
+                            databaseListener.onError(error.toString());
+                            super.onReceivedSslError(view,handler,error);
+                        }
                     }
-                }
+                });
 
-                // Callback to handler
-                if (trusted) {
-                    Log.v("TrafficTimeWaste", "Manually trusting certificate: " + error.getCertificate().toString());
-                    handler.proceed();
-                } else {
-                    Log.v("TrafficTimeWaste", "SSl error: " + error.toString());
-                    databaseListener.onError(error.toString());
-                    super.onReceivedSslError(view,handler,error);
-                }
+                // load page
+                webView.loadUrl(GET_ALL_URL);
+                lastWebView = webView;
+                Log.v("TrafficTimeWaste", "Request sent");
             }
-        });
-
-        // load page
-        webView.loadUrl(GET_ALL_URL);
-        Log.v("TrafficTimeWaste", "Request sent");
+        };
+        activity.runOnUiThread(run);
     }
 
     protected static Post[] parseJson(JSONObject json) throws IllegalArgumentException, JSONException {
@@ -177,6 +186,18 @@ public class DatabaseLink {
         return posts;
     }
 
+    protected void resetWebView() {
+        Runnable run = new Runnable() {
+            @Override
+            public void run() {
+                // Reset WebView, aborting all ongoing tasks on page
+                lastWebView.loadUrl("about:blank");
+                Log.v("TrafficTimeWaste", "WebView was reset");
+            }
+        };
+        activity.runOnUiThread(run);
+    }
+
     public static abstract class DatabaseListener {
         abstract void onGetPosts(Post[] posts);
         abstract void onError(String errorMsg);
@@ -197,6 +218,7 @@ public class DatabaseLink {
             try {
                 JSONObject jsonObject = new JSONObject(json);
                 databaseListener.onGetPosts(DatabaseLink.parseJson(jsonObject));
+                resetWebView();
             } catch (IllegalArgumentException | JSONException e) {
                 databaseListener.onError("JSON is invalid. Error: " + e.getMessage() + " JSON: " + json);
             }

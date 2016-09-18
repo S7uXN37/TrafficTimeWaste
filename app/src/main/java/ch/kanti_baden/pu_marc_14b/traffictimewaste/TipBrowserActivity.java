@@ -7,6 +7,8 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,13 +28,15 @@ public class TipBrowserActivity extends AppCompatActivity {
      * may be best to switch to a
      * {@link android.support.v4.app.FragmentStatePagerAdapter}.
      */
-    private SectionsPagerAdapter mSectionsPagerAdapter;
-    private ViewPager mViewPager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tip_browser);
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle(getTitle()); //TODO implement buttons for: voting, link menu
 
         Bundle bundle = getIntent().getExtras();
         if (bundle.getSerializable(ARG_POSTS) == null || !(bundle.getSerializable(ARG_POSTS) instanceof Post[]))
@@ -42,12 +46,12 @@ public class TipBrowserActivity extends AppCompatActivity {
         Post[] posts = (Post[]) bundle.getSerializable(ARG_POSTS);
 
         // set up PagerAdapter
-        mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager(), posts);
+        SectionsPagerAdapter sectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager(), posts);
 
         // Set up the ViewPager with the sections adapter.
-        mViewPager = (ViewPager) findViewById(R.id.container);
-        mViewPager.setAdapter(mSectionsPagerAdapter);
-        mViewPager.setCurrentItem(postId);
+        ViewPager viewPager = (ViewPager) findViewById(R.id.container);
+        viewPager.setAdapter(sectionsPagerAdapter);
+        viewPager.setCurrentItem(postId);
     }
 
     /**
@@ -84,8 +88,8 @@ public class TipBrowserActivity extends AppCompatActivity {
 
             // update fields
             // content
-            ((TextView) rootView.findViewById(R.id.content))
-                .setText(post.content);
+            ((TextView) rootView.findViewById(R.id.detail_content))
+                    .setText(post.content);
 
             // date
             ((TextView) rootView.findViewById(R.id.date))

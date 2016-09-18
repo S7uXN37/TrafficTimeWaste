@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_vote_up"
+        android:icon="@drawable/ic_thumb_up_white_24px"
+        android:title="Thumbs up"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/action_vote_down"
+        android:icon="@drawable/ic_thumb_down_white_24px"
+        android:title="Thumbs down"
+        app:showAsAction="ifRoom"/>
+
+</menu>

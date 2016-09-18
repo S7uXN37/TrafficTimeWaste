@@ -30,7 +30,7 @@ public class Post implements Serializable {
     }
 
     /**
-    * Converts date of format YYYY-MM-DD HH:MM:SS to milliseconds from 1.1.1977
+    * Converts date of format YYYY-MM-DD HH:MM:SS to milliseconds since January 1, 1970 GMT
      */
     private static long toMillis(String str) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);

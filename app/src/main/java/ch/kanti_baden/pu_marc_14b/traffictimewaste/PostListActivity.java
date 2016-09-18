@@ -1,5 +1,7 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
+import android.app.Activity;
+import android.app.ActivityOptions;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -39,7 +41,7 @@ public class PostListActivity extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        toolbar.setTitle(getTitle()); //TODO implement buttons for: search (tag filtering), sorting
+        toolbar.setTitle(getTitle()); //TODO implement buttons for: search (tag filtering), sorting, link menu
 
         setupRecyclerViewAsync((FrameLayout) findViewById(R.id.frameLayout));
     }
@@ -93,7 +95,7 @@ public class PostListActivity extends AppCompatActivity {
         Arrays.sort(posts, new Comparator<Post>() {
             @Override
             public int compare(Post post, Post t1) {
-                return Long.compare(post.postedAtMillis, t1.postedAtMillis);
+                return -Long.compare(post.postedAtMillis, t1.postedAtMillis);
             }
         });
         return posts;
@@ -157,7 +159,8 @@ public class PostListActivity extends AppCompatActivity {
                         intent.putExtra(TipBrowserActivity.ARG_SCREEN_ID, listIndex);
                         intent.putExtra(TipBrowserActivity.ARG_POSTS, posts);
 
-                        context.startActivity(intent);
+                        // Start TipBrowser with transitions
+                        context.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(PostListActivity.this).toBundle());
                     }
                 });
             }

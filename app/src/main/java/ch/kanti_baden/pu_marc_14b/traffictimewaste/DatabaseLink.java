@@ -1,28 +1,23 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
 import android.content.Context;
+import android.net.http.SslCertificate;
+import android.net.http.SslError;
+import android.os.Bundle;
 import android.util.Log;
+import android.webkit.JavascriptInterface;
+import android.webkit.SslErrorHandler;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.HttpStack;
-import com.android.volley.toolbox.HurlStack;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
-
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -30,16 +25,16 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.Map;
+import java.util.ArrayList;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 public class DatabaseLink {
 
     public static final String JSON_POSTS = "posts";
     public static final String JSON_ID = "id";
+    public static final String JSON_CONTENT = "content";
     public static final String JSON_POSTED_AT = "posted_at";
     public static final String JSON_OWNER = "owner";
     public static final String JSON_VOTES_UP = "votes_up";
@@ -49,20 +44,22 @@ public class DatabaseLink {
 
     public static final String GET_ALL_URL = "https://stuxnet.byethost13.com/PU/get_all_posts.php";
 
-    private RequestQueue requestQueue;
+    private Context context;
+    private X509TrustManager[] trustManagers;
 
     public DatabaseLink(Context context) {
+        this.context = context;
         try {
             // Load CA certificate
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            InputStream caInput = new BufferedInputStream(context.getResources().openRawResource(R.raw.cert_intermediate_ca));
 
             Certificate ca;
-            try {
+            try (InputStream caInput =
+                         new BufferedInputStream(context.getResources().openRawResource(R.raw.cert_intermediate_ca))) {
                 ca = cf.generateCertificate(caInput);
                 Log.v("TrafficTimeWaste", "CA=" + ((X509Certificate) ca).getSubjectDN());
-            } finally {
-                caInput.close();
+            } catch (IOException e) {
+                throw new IOException("Failed to load CA certificate", e);
             }
 
             // Create KeyStore from trusted CA
@@ -70,71 +67,140 @@ public class DatabaseLink {
             keyStore.load(null, null);
             keyStore.setCertificateEntry("ca", ca);
 
-
-            // Create TrustManager from KeyStore
+            // Create TrustManagerFactory from KeyStore
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(keyStore);
 
-            // Create SSLContext from TrustManager
-            final SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, tmf.getTrustManagers(), null);
-
-            // Create HttpStack from SSLContext's SocketFactory
-            HttpStack httpStack = new HurlStack() {
-                @Override
-                protected HttpURLConnection createConnection(URL url) throws IOException {
-                    HttpURLConnection httpURLConnection = super.createConnection(url);
-
-                    if (httpURLConnection instanceof HttpsURLConnection) {
-                        HttpsURLConnection httpsURLConnection = (HttpsURLConnection) httpURLConnection;
-
-                        try {
-                            httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-
-                        httpURLConnection = httpsURLConnection;
-                    }
-
-                    return httpURLConnection;
-                }
-            };
-
-            requestQueue = Volley.newRequestQueue(context, httpStack);
-        } catch (CertificateException | IOException | KeyStoreException | NoSuchAlgorithmException | KeyManagementException e) {
+            // Cast TrustManagers from TrustManagerFactory to X509TrustManagers and store in trustManagers
+            trustManagers = new X509TrustManager[tmf.getTrustManagers().length];
+            for (int i = 0; i < trustManagers.length; i++) {
+                trustManagers[i] = (X509TrustManager) tmf.getTrustManagers()[i];
+            }
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
         }
 
     }
 
     public void getAllPosts(final DatabaseListener databaseListener) {
-        // create json request
-        StringRequest jsonRequest = new StringRequest
-                (Request.Method.GET, GET_ALL_URL, new Response.Listener<String>() {
+        // Create a WebView to load page and execute contained JavaScript
+        WebView webView = new WebView(context);
+        webView.getSettings().setJavaScriptEnabled(true);
+        // Add JavaScriptInterface to return JSON
+        webView.addJavascriptInterface(new JsonGrabberJavaScriptInterface(databaseListener), "JsonGrabber");
 
+        // Add WebViewClient to handle certificate verification and return response JSON
+        webView.setWebViewClient(new WebViewClient() {
             @Override
-            public void onResponse(String response) {
-                Log.v("TrafficTimeWaste", response.toString());
-//                databaseListener.onGetPosts(posts);
+            public void onPageFinished(WebView view, String url) {
+                // Called after page is done loading, inject JavaScript to send JSON to JavaScriptInterface
+                // Produces error and doesn't invoke listener if no JSON is found
+                Log.v("TrafficTimeWaste", "Page finished, injecting JavaScript...");
+                view.loadUrl("javascript:window.JsonGrabber.submitJson(document.getElementsByTagName('json')[0].innerHTML);");
             }
 
-        }, new Response.ErrorListener() {
-
             @Override
-            public void onErrorResponse(VolleyError error) {
-                databaseListener.onError(error);
-            }
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                // SSL certificate was not trusted, check against trustManagers
 
+                // Extract X509Certificate from SslError
+                Bundle bundle = SslCertificate.saveState(error.getCertificate());
+                X509Certificate x509Certificate;
+                byte[] bytes = bundle.getByteArray("x509-certificate");
+                if (bytes == null) {
+                    x509Certificate = null;
+                } else {
+                    try {
+                        CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+                        Certificate cert = certFactory.generateCertificate(new ByteArrayInputStream(bytes));
+                        x509Certificate = (X509Certificate) cert;
+                    } catch (CertificateException e) {
+                        x509Certificate = null;
+                    }
+                }
+
+                // Check against each TrustManager, stop as soon as it's trusted
+                boolean trusted = false;
+                for (int i = 0; i < trustManagers.length && !trusted; i++) {
+                    X509TrustManager tm = trustManagers[i];
+                    try {
+                        tm.checkServerTrusted(new X509Certificate[]{x509Certificate}, "RSA");
+                        trusted = true;
+                    } catch (CertificateException e) {
+                        Log.v("TrafficTimeWaste", "Verification failed at i="+i+", error: " + e.getMessage());
+                    }
+                }
+
+                // Callback to handler
+                if (trusted) {
+                    Log.v("TrafficTimeWaste", "Manually trusting certificate: " + error.getCertificate().toString());
+                    handler.proceed();
+                } else {
+                    Log.v("TrafficTimeWaste", "SSl error: " + error.toString());
+                    databaseListener.onError(error.toString());
+                    super.onReceivedSslError(view,handler,error);
+                }
+            }
         });
 
-        // add request to queue
-        requestQueue.add(jsonRequest);
+        // load page
+        webView.loadUrl(GET_ALL_URL);
+        Log.v("TrafficTimeWaste", "Request sent");
+    }
+
+    protected static Post[] parseJson(JSONObject json) throws IllegalArgumentException, JSONException {
+        Log.v("TrafficTimeWaste", "JSON: " + json);
+
+        if (json.getInt(JSON_SUCCESS) != 1)
+            throw new IllegalArgumentException("JSON indicating failure in database access");
+
+        JSONArray postsJson = json.getJSONArray(JSON_POSTS);
+        Post[] posts = new Post[postsJson.length()];
+        for (int i = 0; i < posts.length; i++) {
+            JSONObject postJson = postsJson.getJSONObject(i);
+            int id = postJson.getInt(JSON_ID);
+            String content = postJson.getString(JSON_CONTENT);
+            String postedAt = postJson.getString(JSON_POSTED_AT);
+            String owner = postJson.getString(JSON_OWNER);
+            int votesUp = postJson.getInt(JSON_VOTES_UP);
+            int votesDown = postJson.getInt(JSON_VOTES_DOWN);
+
+            JSONArray tagsJson = postJson.getJSONArray(JSON_TAGS);
+            String[] tags = new String[tagsJson.length()];
+            for (int j = 0; j < tags.length; j++) {
+                tags[j] = tagsJson.getString(j);
+            }
+
+            posts[i] = new Post(id, content, postedAt, owner, votesUp, votesDown, tags);
+        }
+
+        return posts;
     }
 
     public static abstract class DatabaseListener {
         abstract void onGetPosts(Post[] posts);
-        abstract void onError(VolleyError error);
+        abstract void onError(String errorMsg);
+    }
+
+    public class JsonGrabberJavaScriptInterface {
+        private DatabaseListener databaseListener;
+
+        public JsonGrabberJavaScriptInterface(DatabaseListener listener) {
+            databaseListener = listener;
+        }
+
+        @JavascriptInterface
+        @SuppressWarnings("unused")
+        public void submitJson(String json) {
+            Log.v("TrafficTimeWaste", "submitJson(): " + json);
+
+            try {
+                JSONObject jsonObject = new JSONObject(json);
+                databaseListener.onGetPosts(DatabaseLink.parseJson(jsonObject));
+            } catch (IllegalArgumentException | JSONException e) {
+                databaseListener.onError("JSON is invalid. Error: " + e.getMessage() + " JSON: " + json);
+            }
+        }
     }
 
 }

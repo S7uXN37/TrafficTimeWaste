@@ -1,7 +1,5 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
-import android.app.ProgressDialog;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 
 import android.support.v4.app.Fragment;
@@ -15,11 +13,10 @@ import android.view.ViewGroup;
 
 import android.widget.TextView;
 
-import com.android.volley.VolleyError;
+public class TipBrowserActivity extends AppCompatActivity {
 
-public class TipBrowser extends AppCompatActivity {
-
-    private static final String ARG_POSTS = "posts";
+    public static final String ARG_POSTS = "posts";
+    public static final String ARG_SCREEN_ID = "post_id";
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -37,36 +34,20 @@ public class TipBrowser extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tip_browser);
 
-        final ProgressDialog progressDialog = ProgressDialog.show(this, "Loading posts...", "Please wait", true, false);
-        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        Bundle bundle = getIntent().getExtras();
+        if (bundle.getSerializable(ARG_POSTS) == null || !(bundle.getSerializable(ARG_POSTS) instanceof Post[]))
+            throw new IllegalArgumentException("ARG_POSTS must be of type Post[]");
+        int postId = bundle.getInt(ARG_SCREEN_ID, 0);
 
-        DatabaseLink.DatabaseListener listener = new DatabaseLink.DatabaseListener() {
-            @Override
-            void onGetPosts(Post[] posts) {
-                if (progressDialog != null && progressDialog.isShowing())
-                    progressDialog.dismiss();
+        Post[] posts = (Post[]) bundle.getSerializable(ARG_POSTS);
 
-                // set up PagerAdapter
-                mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager(), posts);
+        // set up PagerAdapter
+        mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager(), posts);
 
-                // Set up the ViewPager with the sections adapter.
-                mViewPager = (ViewPager) findViewById(R.id.container);
-                mViewPager.setAdapter(mSectionsPagerAdapter);
-            }
-
-            @Override
-            void onError(VolleyError error) {
-                if (progressDialog != null && progressDialog.isShowing())
-                    progressDialog.dismiss();
-
-                new AlertDialog.Builder(progressDialog.getContext())
-                        .setTitle("Error")
-                        .setMessage(error.getMessage())
-                        .show();
-            }
-        };
-
-        new DatabaseLink(this).getAllPosts(listener);
+        // Set up the ViewPager with the sections adapter.
+        mViewPager = (ViewPager) findViewById(R.id.container);
+        mViewPager.setAdapter(mSectionsPagerAdapter);
+        mViewPager.setCurrentItem(postId);
     }
 
     /**

@@ -1,7 +1,7 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.net.http.SslCertificate;
 import android.net.http.SslError;
 import android.os.Bundle;
@@ -26,11 +26,11 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+@SuppressLint("SetJavaScriptEnabled")
 public class DatabaseLink {
 
     public static final String JSON_POSTS = "posts";
@@ -44,6 +44,7 @@ public class DatabaseLink {
     public static final String JSON_SUCCESS = "success";
 
     public static final String GET_ALL_URL = "https://stuxnet.byethost13.com/PU/get_all_posts.php";
+    public static final String GET_WITH_TAG_URL = "https://stuxnet.byethost13.com/PU/get_posts_by_tag.php?tag_name=#TAG#";
 
     private Activity activity;
     private X509TrustManager[] trustManagers;
@@ -85,6 +86,14 @@ public class DatabaseLink {
     }
 
     public void getAllPosts(final DatabaseListener databaseListener) {
+        loadPostsFromURL(databaseListener, GET_ALL_URL);
+    }
+
+    public void getPostsWithTag(DatabaseListener databaseListener, String tag) {
+        loadPostsFromURL(databaseListener, GET_WITH_TAG_URL.replace("#TAG#", tag));
+    }
+
+    private void loadPostsFromURL(final DatabaseListener databaseListener, final String url) {
         Runnable run = new Runnable() {
             @Override
             public void run() {
@@ -149,7 +158,7 @@ public class DatabaseLink {
                 });
 
                 // load page
-                webView.loadUrl(GET_ALL_URL);
+                webView.loadUrl(url);
                 lastWebView = webView;
                 Log.v("TrafficTimeWaste", "Request sent");
             }

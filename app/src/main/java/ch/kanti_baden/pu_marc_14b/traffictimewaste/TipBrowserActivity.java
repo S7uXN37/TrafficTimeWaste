@@ -8,12 +8,15 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class TipBrowserActivity extends AppCompatActivity {
 
@@ -36,7 +39,7 @@ public class TipBrowserActivity extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        toolbar.setTitle(getTitle()); //TODO implement buttons for: voting, link menu
+        toolbar.setTitle(getTitle());
 
         Bundle bundle = getIntent().getExtras();
         if (bundle.getSerializable(ARG_POSTS) == null || !(bundle.getSerializable(ARG_POSTS) instanceof Post[]))
@@ -52,6 +55,29 @@ public class TipBrowserActivity extends AppCompatActivity {
         ViewPager viewPager = (ViewPager) findViewById(R.id.container);
         viewPager.setAdapter(sectionsPagerAdapter);
         viewPager.setCurrentItem(postId);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_tip_browser, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_vote_up:
+                // TODO if (!votedUp) DatabaseLink with vote(postId, 1) else DatabaseLink with removeVote(postId)
+                Toast.makeText(this, "Vote up", Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.action_vote_down:
+                // TODO if (!votedDown) DatabaseLink with vote(postId, 0) else DatabaseLink with removeVote(postId)
+                Toast.makeText(this, "Vote down", Toast.LENGTH_SHORT).show();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     /**

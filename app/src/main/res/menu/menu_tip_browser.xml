@@ -5,13 +5,13 @@
     <item
         android:id="@+id/action_vote_up"
         android:icon="@drawable/ic_thumb_up_white_24px"
-        android:title="Thumbs up"
+        android:title="@string/action_vote_up"
         app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/action_vote_down"
         android:icon="@drawable/ic_thumb_down_white_24px"
-        android:title="Thumbs down"
+        android:title="@string/action_vote_down"
         app:showAsAction="ifRoom"/>
 
 </menu>

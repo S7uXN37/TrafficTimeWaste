@@ -1,6 +1,5 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
-import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -13,17 +12,22 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import org.w3c.dom.Text;
-
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Comparator;
 
+
+enum SORT_TYPE {
+    NEWEST, OLDEST, UPVOTES, DOWNVOTES
+}
 
 /**
  * An activity representing a list of Posts. This activity
@@ -34,6 +38,10 @@ import java.util.Comparator;
  */
 public class PostListActivity extends AppCompatActivity {
 
+    public static final String ARG_TAG_FILTER = "tag_filter";
+
+    public static SORT_TYPE sortType = SORT_TYPE.NEWEST;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,9 +49,32 @@ public class PostListActivity extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        toolbar.setTitle(getTitle()); //TODO implement buttons for: search (tag filtering), sorting, link menu
+        toolbar.setTitle(getTitle());
 
         setupRecyclerViewAsync((FrameLayout) findViewById(R.id.frameLayout));
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_post_list, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_sort:
+                // TODO open Dialog with RadioButtons to select ordering
+                Toast.makeText(this, "Sort", Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.action_search:
+                // TODO display search bar, refresh with tag filter on submit
+                Toast.makeText(this, "Search", Toast.LENGTH_SHORT).show();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     private void setupRecyclerViewAsync(@NonNull final ViewGroup viewGroup) {
@@ -87,17 +118,52 @@ public class PostListActivity extends AppCompatActivity {
             }
         };
 
-        new DatabaseLink(this).getAllPosts(listener);
+        Bundle bundle = getIntent().getExtras();
+        if (bundle.getString(ARG_TAG_FILTER)==null)
+            new DatabaseLink(this).getAllPosts(listener);
+        else
+            new DatabaseLink(this).getPostsWithTag(listener, bundle.getString(ARG_TAG_FILTER));
         Log.v("TrafficTimeWaste", "Querying db...");
     }
 
     public static Post[] sortPosts(Post[] posts) {
-        Arrays.sort(posts, new Comparator<Post>() {
-            @Override
-            public int compare(Post post, Post t1) {
-                return -Long.compare(post.postedAtMillis, t1.postedAtMillis);
-            }
-        });
+        Comparator<Post> comparator = null;
+        switch (sortType) {
+            case NEWEST:
+                comparator = new Comparator<Post>() {
+                    @Override
+                    public int compare(Post post, Post t1) {
+                        return -Long.compare(post.postedAtMillis, t1.postedAtMillis);
+                    }
+                };
+                break;
+            case OLDEST:
+                comparator = new Comparator<Post>() {
+                    @Override
+                    public int compare(Post post, Post t1) {
+                        return Long.compare(post.postedAtMillis, t1.postedAtMillis);
+                    }
+                };
+                break;
+            case UPVOTES:
+                comparator = new Comparator<Post>() {
+                    @Override
+                    public int compare(Post post, Post t1) {
+                        return -Integer.compare(post.votesUp, t1.votesUp);
+                    }
+                };
+                break;
+            case DOWNVOTES:
+                comparator = new Comparator<Post>() {
+                    @Override
+                    public int compare(Post post, Post t1) {
+                        return -Integer.compare(post.votesDown, t1.votesDown);
+                    }
+                };
+                break;
+        }
+
+        Arrays.sort(posts, comparator);
         return posts;
     }
 

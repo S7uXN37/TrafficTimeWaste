@@ -4,14 +4,14 @@
 
     <item
         android:id="@+id/action_sort"
-        android:icon="@android:drawable/ic_menu_sort_alphabetically"
-        android:title="Sort"
+        android:icon="@drawable/ic_sort_white_24px"
+        android:title="@string/action_sort"
         app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/action_search"
         android:icon="@android:drawable/ic_menu_search"
-        android:title="Search"
+        android:title="@string/action_search"
         app:showAsAction="ifRoom"/>
 
 </menu>

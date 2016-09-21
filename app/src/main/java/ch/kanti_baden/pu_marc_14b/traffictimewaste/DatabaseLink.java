@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.net.http.SslCertificate;
 import android.net.http.SslError;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
@@ -26,6 +27,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -86,14 +88,14 @@ public class DatabaseLink {
     }
 
     public void getAllPosts(final DatabaseListener databaseListener) {
-        loadPostsFromURL(databaseListener, GET_ALL_URL);
+        loadPostsFromURL(databaseListener, GET_ALL_URL, null);
     }
 
     public void getPostsWithTag(DatabaseListener databaseListener, String tag) {
-        loadPostsFromURL(databaseListener, GET_WITH_TAG_URL.replace("#TAG#", tag));
+        loadPostsFromURL(databaseListener, GET_ALL_URL, tag);
     }
 
-    private void loadPostsFromURL(final DatabaseListener databaseListener, final String url) {
+    private void loadPostsFromURL(final DatabaseListener databaseListener, final String url, final String filter) {
         Runnable run = new Runnable() {
             @Override
             public void run() {
@@ -101,7 +103,7 @@ public class DatabaseLink {
                 WebView webView = new WebView(activity);
                 webView.getSettings().setJavaScriptEnabled(true);
                 // Add JavaScriptInterface to return JSON
-                webView.addJavascriptInterface(new JsonGrabberJavaScriptInterface(databaseListener), "JsonGrabber");
+                webView.addJavascriptInterface(new JsonGrabberJavaScriptInterface(databaseListener, filter), "JsonGrabber");
 
                 // Add WebViewClient to handle certificate verification and return response JSON
                 webView.setWebViewClient(new WebViewClient() {
@@ -166,15 +168,15 @@ public class DatabaseLink {
         activity.runOnUiThread(run);
     }
 
-    protected static Post[] parseJson(JSONObject json) throws IllegalArgumentException, JSONException {
+    protected static Post[] parseJson(JSONObject json, String tagFilter) throws IllegalArgumentException, JSONException {
         Log.v("TrafficTimeWaste", "JSON: " + json);
 
         if (json.getInt(JSON_SUCCESS) != 1)
             throw new IllegalArgumentException("JSON indicating failure in database access");
 
         JSONArray postsJson = json.getJSONArray(JSON_POSTS);
-        Post[] posts = new Post[postsJson.length()];
-        for (int i = 0; i < posts.length; i++) {
+        ArrayList<Post> posts = new ArrayList<Post>();
+        for (int i = 0; i < postsJson.length(); i++) {
             JSONObject postJson = postsJson.getJSONObject(i);
             int id = postJson.getInt(JSON_ID);
             String content = postJson.getString(JSON_CONTENT);
@@ -185,14 +187,22 @@ public class DatabaseLink {
 
             JSONArray tagsJson = postJson.getJSONArray(JSON_TAGS);
             String[] tags = new String[tagsJson.length()];
+
+            boolean meetsFilter = (tagFilter==null || tagFilter.equals(""));
             for (int j = 0; j < tags.length; j++) {
                 tags[j] = tagsJson.getString(j);
+                meetsFilter |= tags[j].equals(tagFilter);
             }
 
-            posts[i] = new Post(id, content, postedAt, owner, votesUp, votesDown, tags);
+            if (meetsFilter)
+                posts.add(new Post(id, content, postedAt, owner, votesUp, votesDown, tags));
         }
 
-        return posts;
+        Post[] postArray = new Post[posts.size()];
+        for (int i = 0; i < postArray.length; i++)
+            postArray[i] = posts.get(i);
+
+        return postArray;
     }
 
     protected void resetWebView() {
@@ -214,9 +224,11 @@ public class DatabaseLink {
 
     public class JsonGrabberJavaScriptInterface {
         private DatabaseListener databaseListener;
+        private String tagFilter;
 
-        public JsonGrabberJavaScriptInterface(DatabaseListener listener) {
+        public JsonGrabberJavaScriptInterface(DatabaseListener listener, String filter) {
             databaseListener = listener;
+            tagFilter = filter;
         }
 
         @JavascriptInterface
@@ -226,7 +238,7 @@ public class DatabaseLink {
 
             try {
                 JSONObject jsonObject = new JSONObject(json);
-                databaseListener.onGetPosts(DatabaseLink.parseJson(jsonObject));
+                databaseListener.onGetPosts(DatabaseLink.parseJson(jsonObject, tagFilter));
                 resetWebView();
             } catch (IllegalArgumentException | JSONException e) {
                 databaseListener.onError("JSON is invalid. Error: " + e.getMessage() + " JSON: " + json);

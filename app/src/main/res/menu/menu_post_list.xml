@@ -12,6 +12,8 @@
         android:id="@+id/action_search"
         android:icon="@android:drawable/ic_menu_search"
         android:title="@string/action_search"
-        app:showAsAction="ifRoom"/>
+        app:showAsAction="ifRoom"
+        android:actionViewClass="android.widget.SearchView"
+        app:actionViewClass="android.support.v7.widget.SearchView"/>
 
 </menu>

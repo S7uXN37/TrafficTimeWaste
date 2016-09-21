@@ -6,4 +6,6 @@
     <string name="action_search">Search</string>
     <string name="action_vote_up">Thumbs up</string>
     <string name="action_vote_down">Thumbs down</string>
+    <string name="select_sorting">Sort by</string>
+    <string name="search_hint">Search posts</string>
 </resources>

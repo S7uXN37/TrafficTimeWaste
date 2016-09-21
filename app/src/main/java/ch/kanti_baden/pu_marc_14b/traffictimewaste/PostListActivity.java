@@ -1,14 +1,18 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
+import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.ProgressDialog;
+import android.app.SearchManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -40,7 +44,7 @@ public class PostListActivity extends AppCompatActivity {
 
     public static final String ARG_TAG_FILTER = "tag_filter";
 
-    public static SORT_TYPE sortType = SORT_TYPE.NEWEST;
+    public static int sortType = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +62,13 @@ public class PostListActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_post_list, menu);
+
+        // Get the SearchView and set the searchable configuration
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+        // Assumes current activity is the searchable activity
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+
         return true;
     }
 
@@ -65,12 +76,25 @@ public class PostListActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_sort:
-                // TODO open Dialog with RadioButtons to select ordering
-                Toast.makeText(this, "Sort", Toast.LENGTH_SHORT).show();
-                return true;
-            case R.id.action_search:
-                // TODO display search bar, refresh with tag filter on submit
-                Toast.makeText(this, "Search", Toast.LENGTH_SHORT).show();
+                // Create AlertDialog with radio buttons to select ordering
+                final Activity activity = this;
+                AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+                // Add options
+                SORT_TYPE[] values = SORT_TYPE.values();
+                String[] options = new String[values.length];
+                for (int i = 0; i < options.length; i++)
+                    options[i] = values[i].name();
+                builder.setTitle(R.string.select_sorting)
+                        .setSingleChoiceItems(options, sortType, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                sortType = which;
+                                activity.recreate();
+                            }
+                        });
+                // Display dialog
+                AlertDialog dialog = builder.create();
+                dialog.show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -118,17 +142,17 @@ public class PostListActivity extends AppCompatActivity {
             }
         };
 
-        Bundle bundle = getIntent().getExtras();
-        if (bundle.getString(ARG_TAG_FILTER)==null)
-            new DatabaseLink(this).getAllPosts(listener);
+        Intent intent = getIntent();
+        if (Intent.ACTION_SEARCH.equals(intent.getAction()))
+            new DatabaseLink(this).getPostsWithTag(listener, intent.getStringExtra(SearchManager.QUERY));
         else
-            new DatabaseLink(this).getPostsWithTag(listener, bundle.getString(ARG_TAG_FILTER));
+            new DatabaseLink(this).getAllPosts(listener);
         Log.v("TrafficTimeWaste", "Querying db...");
     }
 
     public static Post[] sortPosts(Post[] posts) {
         Comparator<Post> comparator = null;
-        switch (sortType) {
+        switch (SORT_TYPE.values()[sortType]) {
             case NEWEST:
                 comparator = new Comparator<Post>() {
                     @Override

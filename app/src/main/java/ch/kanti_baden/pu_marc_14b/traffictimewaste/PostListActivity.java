@@ -24,6 +24,9 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.Arrays;
 import java.util.Comparator;
 
@@ -105,7 +108,16 @@ public class PostListActivity extends AppCompatActivity {
         final Context context = this;
         DatabaseLink.DatabaseListener listener = new DatabaseLink.DatabaseListener() {
             @Override
-            void onGetPosts(final Post[] posts) {
+            void onGetResponse(String str) {
+                final Post[] posts;
+                try {
+                    JSONObject json = new JSONObject(str);
+                    posts = DatabaseLink.parseJson(json);
+                } catch (JSONException e) {
+                    onError("JSON is invalid. Error: " + e.getMessage() + ", JSON: " + str);
+                    return;
+                }
+
                 if (progressDialog.isShowing())
                     progressDialog.dismiss();
 

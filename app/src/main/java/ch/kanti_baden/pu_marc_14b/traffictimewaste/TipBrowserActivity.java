@@ -1,5 +1,6 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
+import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
 
 import android.support.v4.app.Fragment;
@@ -22,6 +23,12 @@ public class TipBrowserActivity extends AppCompatActivity {
 
     public static final String ARG_POSTS = "posts";
     public static final String ARG_SCREEN_ID = "post_id";
+
+    private boolean receivedVotedOn = false;
+    private boolean votedUp = false;
+    private boolean votedDown = false;
+
+    private ViewPager viewPager;
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -52,7 +59,7 @@ public class TipBrowserActivity extends AppCompatActivity {
         SectionsPagerAdapter sectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager(), posts);
 
         // Set up the ViewPager with the sections adapter.
-        ViewPager viewPager = (ViewPager) findViewById(R.id.container);
+        viewPager = (ViewPager) findViewById(R.id.container);
         viewPager.setAdapter(sectionsPagerAdapter);
         viewPager.setCurrentItem(postId);
     }
@@ -66,14 +73,47 @@ public class TipBrowserActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        SectionsPagerAdapter adapter = (SectionsPagerAdapter) viewPager.getAdapter();
+        TipFragment fragment = (TipFragment) adapter.getItem(viewPager.getCurrentItem());
+        int postId = fragment.post.id;
+
+        boolean voteUp = false;
+        boolean removeVote = votedDown;
+
+        if (!receivedVotedOn)
+            return super.onOptionsItemSelected(item);
+
         switch (item.getItemId()) {
             case R.id.action_vote_up:
-                // TODO if (!votedUp) DatabaseLink with vote(postId, 1) else DatabaseLink with removeVote(postId)
-                Toast.makeText(this, "Vote up", Toast.LENGTH_SHORT).show();
-                return true;
+                voteUp = true;
+                removeVote = votedUp;
             case R.id.action_vote_down:
-                // TODO if (!votedDown) DatabaseLink with vote(postId, 0) else DatabaseLink with removeVote(postId)
-                Toast.makeText(this, "Vote down", Toast.LENGTH_SHORT).show();
+                final Context context = this;
+                if (!removeVote) {
+                    new DatabaseLink(this).voteOnPost(new DatabaseLink.DatabaseListener() {
+                        @Override
+                        void onGetResponse(String message) {
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        void onError(String errorMsg) {
+                            Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show();
+                        }
+                    }, postId, voteUp);
+                } else {
+                    new DatabaseLink(this).removeVote(new DatabaseLink.DatabaseListener() {
+                        @Override
+                        void onGetResponse(String message) {
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        void onError(String errorMsg) {
+                            Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show();
+                        }
+                    }, postId);
+                }
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -86,6 +126,8 @@ public class TipBrowserActivity extends AppCompatActivity {
     public static class TipFragment extends Fragment {
 
         private static final String ARG_POST = "post_object";
+
+        public Post post;
 
         public TipFragment() {
         }
@@ -107,7 +149,7 @@ public class TipBrowserActivity extends AppCompatActivity {
             // get Post
             if (!(getArguments().getSerializable(ARG_POST) instanceof Post))
                 throw new IllegalArgumentException("ARG_POST must be of type Post");
-            Post post = (Post) getArguments().getSerializable(ARG_POST);
+            post = (Post) getArguments().getSerializable(ARG_POST);
 
             if (post == null)
                 throw new IllegalArgumentException("Post cannot be NULL");
@@ -143,7 +185,7 @@ public class TipBrowserActivity extends AppCompatActivity {
 
         private Post[] posts;
 
-        public SectionsPagerAdapter(FragmentManager fm, Post[] data) {
+        SectionsPagerAdapter(FragmentManager fm, Post[] data) {
             super(fm);
             posts = data;
         }

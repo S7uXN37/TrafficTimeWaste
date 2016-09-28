@@ -2,6 +2,7 @@ package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.net.http.SslCertificate;
 import android.net.http.SslError;
 import android.os.Bundle;
@@ -58,6 +59,8 @@ class DatabaseLink {
     private X509TrustManager[] trustManagers;
     private WebView lastWebView;
 
+    private String USERNAME, PASSWORD;
+
     DatabaseLink(Activity parentActivity) {
         activity = parentActivity;
         try {
@@ -91,29 +94,41 @@ class DatabaseLink {
             e.printStackTrace();
         }
 
+        // Read credentials
+        String key = "MyTopSecretKey";
+        for (int i = 0; i < 43; i+=3)
+            key += key.charAt(i%key.length());
+        SecurePreferences preferences = new SecurePreferences(parentActivity, "credentials", key, false);
+        USERNAME = preferences.getString("username");
+        PASSWORD = preferences.getString("password");
+
+        if (USERNAME == null || PASSWORD == null) {
+            Intent intent = new Intent(Intent.ACTION_) // TODO open LoginActivity
+            parentActivity.startActivity(intent);
+        }
     }
 
     void getAllPosts(DatabaseListener databaseListener) {
-        loadPostsFromURL(databaseListener, GET_ALL_URL, null);
+        loadUrl(databaseListener, GET_ALL_URL, null);
     }
     void getPostsWithTag(DatabaseListener databaseListener, String tag) {
-        loadPostsFromURL(databaseListener, GET_WITH_TAG_URL, "tag_name=" + tag);
+        loadUrl(databaseListener, GET_WITH_TAG_URL, "tag_name=" + tag);
     }
-    void testAuthentication(String username, String password) {
-        loadJsonFromURL(LOGIN_URL, "username="+username+"&password="+password);
+    void testAuthentication(DatabaseListener listener, String username, String password) {
+        loadUrl(listener, LOGIN_URL, "username=" + username + "&password=" + password);
     }
-    void voteOnPost(int postId, boolean isUpvote) {
-        loadJsonFromURL(DO_VOTE_URL, "username="+username+"&password="+password+"&post_id="+postId+"&isUpvote="+(isUpvote?'1':'0'));
+    void voteOnPost(DatabaseListener listener, int postId, boolean voteUp) {
+        loadUrl(listener, DO_VOTE_URL, "username=" + USERNAME + "&password=" + PASSWORD + "&post_id=" + postId + "&vote=" + (voteUp ? '1' : '0'));
     }
-    void removeVote(int postId) {
-        loadJsonFromURL(REMOVE_VOTE_URL, "username="+username+"&password="+password+"&post_id="+postId);
+    void removeVote(DatabaseListener listener, int postId) {
+        loadUrl(listener, REMOVE_VOTE_URL, "username=" + USERNAME + "&password=" + PASSWORD + "&post_id=" + postId);
     }
-    void getVotedOnPost(int postId) {
-        loadJsonFromURL(GET_VOTED_ON_URL, "username="+username+"&password="+password+"&post_id="+postId);
+    void getVotedOnPost(DatabaseListener listener, int postId) {
+        loadUrl(listener, GET_VOTED_ON_URL, "username=" + USERNAME + "&password=" + PASSWORD + "&post_id=" + postId);
     }
 
 
-    private void loadPostsFromURL(
+    private void loadUrl(
             final DatabaseListener databaseListener, final String url, final String postData) {
         Runnable run = new Runnable() {
             @Override
@@ -162,7 +177,7 @@ class DatabaseLink {
                                 tm.checkServerTrusted(new X509Certificate[]{x509Certificate}, "RSA");
                                 trusted = true;
                             } catch (CertificateException e) {
-                                Log.v("TrafficTimeWaste", "Verification failed at i="+i+", error: " + e.getMessage());
+                                Log.v("TrafficTimeWaste", "Verification failed at i=" + i + ", error: " + e.getMessage());
                             }
                         }
 
@@ -198,7 +213,7 @@ class DatabaseLink {
         activity.runOnUiThread(run);
     }
 
-    private static Post[] parseJson(JSONObject json) throws IllegalArgumentException, JSONException {
+    static Post[] parseJson(JSONObject json) throws IllegalArgumentException, JSONException {
         Log.v("TrafficTimeWaste", "JSON: " + json);
 
         if (json.getInt(JSON_SUCCESS) != 1)
@@ -246,7 +261,7 @@ class DatabaseLink {
     }
 
     static abstract class DatabaseListener {
-        abstract void onGetPosts(Post[] posts);
+        abstract void onGetResponse(String json);
         abstract void onError(String errorMsg);
     }
 
@@ -262,13 +277,8 @@ class DatabaseLink {
         public void submitJson(String json) {
             Log.v("TrafficTimeWaste", "submitJson(): " + json);
 
-            try {
-                JSONObject jsonObject = new JSONObject(json);
-                databaseListener.onGetPosts(DatabaseLink.parseJson(jsonObject));
-                resetWebView();
-            } catch (IllegalArgumentException | JSONException e) {
-                databaseListener.onError("JSON is invalid. Error: " + e.getMessage() + ", JSON: " + json);
-            }
+            databaseListener.onGetResponse(json);
+            resetWebView();
         }
     }
 

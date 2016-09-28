@@ -23,7 +23,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -41,8 +40,6 @@ enum SORT_TYPE {
  * item details.
  */
 public class PostListActivity extends AppCompatActivity {
-
-    public static final String ARG_TAG_FILTER = "tag_filter";
 
     public static int sortType = 0;
 
@@ -83,7 +80,7 @@ public class PostListActivity extends AppCompatActivity {
                 SORT_TYPE[] values = SORT_TYPE.values();
                 String[] options = new String[values.length];
                 for (int i = 0; i < options.length; i++)
-                    options[i] = values[i].name();
+                    options[i] = values[i].name().toLowerCase();
                 builder.setTitle(R.string.select_sorting)
                         .setSingleChoiceItems(options, sortType, new DialogInterface.OnClickListener() {
                             @Override
@@ -118,7 +115,9 @@ public class PostListActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         // Inflate layout post_list
-                        RecyclerView recyclerView = (RecyclerView) View.inflate(context, R.layout.post_list, null).findViewById(R.id.post_list);
+                        RecyclerView recyclerView =
+                                (RecyclerView) View.inflate(context, R.layout.post_list, null)
+                                        .findViewById(R.id.post_list);
                         assert recyclerView != null;
 
                         // Set adapter with posts
@@ -196,7 +195,7 @@ public class PostListActivity extends AppCompatActivity {
 
         private final Post[] posts;
 
-        public SimpleItemRecyclerViewAdapter(Post[] items) {
+        SimpleItemRecyclerViewAdapter(Post[] items) {
             posts = items;
         }
 
@@ -209,24 +208,31 @@ public class PostListActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(final ViewHolder holder, int position) {
-            Post p = posts[position];
+            Post p;
+            if (posts.length == 0) {
+                p = new Post(-1, "No posts found...", "", "", 0, 0, new String[]{});
+                p.clickable = false;
+            } else {
+                p = posts[position];
+            }
+
             Log.v("TrafficTimeWaste", "Updating Holder, post: " + p.toString());
             holder.update(p, position);
         }
 
         @Override
         public int getItemCount() {
-            return posts.length;
+            return Math.max(1, posts.length);
         }
 
-        public class ViewHolder extends RecyclerView.ViewHolder {
+        class ViewHolder extends RecyclerView.ViewHolder {
             private final View mView;
-            public final TextView idView;
-            public final TextView contentView;
-            public final TextView postedAtView;
-            public Post post;
+            final TextView idView;
+            final TextView contentView;
+            final TextView postedAtView;
+            Post post;
 
-            public ViewHolder(View view) {
+            ViewHolder(View view) {
                 super(view);
                 mView = view;
                 idView = (TextView) view.findViewById(R.id.id);
@@ -234,25 +240,27 @@ public class PostListActivity extends AppCompatActivity {
                 postedAtView = (TextView) view.findViewById(R.id.postedAt);
             }
 
-            public void update(Post item, final int listIndex) {
+            void update(Post item, final int listIndex) {
                 post = item;
                 String id = ""+item.id;
                 idView.setText(id);
                 contentView.setText(item.content);
                 postedAtView.setText(item.postedAt);
 
-                mView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Context context = v.getContext();
-                        Intent intent = new Intent(context, TipBrowserActivity.class);
-                        intent.putExtra(TipBrowserActivity.ARG_SCREEN_ID, listIndex);
-                        intent.putExtra(TipBrowserActivity.ARG_POSTS, posts);
+                if (item.clickable) {
+                    mView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Context context = v.getContext();
+                            Intent intent = new Intent(context, TipBrowserActivity.class);
+                            intent.putExtra(TipBrowserActivity.ARG_SCREEN_ID, listIndex);
+                            intent.putExtra(TipBrowserActivity.ARG_POSTS, posts);
 
-                        // Start TipBrowser with transitions
-                        context.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(PostListActivity.this).toBundle());
-                    }
-                });
+                            // Start TipBrowser with transitions
+                            context.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(PostListActivity.this).toBundle());
+                        }
+                    });
+                }
             }
 
             @Override

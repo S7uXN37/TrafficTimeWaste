@@ -16,6 +16,7 @@ public class Post implements Serializable {
     public int votesUp;
     public int votesDown;
     public String[] tags;
+    public boolean clickable = true;
 
     public Post(int postId, String text, String timePosted, String username,
                 int upvotes, int downvotes, String[] postTags) {

@@ -9,6 +9,7 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -19,14 +20,13 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class TipBrowserActivity extends AppCompatActivity {
 
     public static final String ARG_POSTS = "posts";
     public static final String ARG_SCREEN_ID = "post_id";
-
-    private boolean receivedVotedOn = false;
-    private boolean votedUp = false;
-    private boolean votedDown = false;
 
     private ViewPager viewPager;
 
@@ -77,20 +77,20 @@ public class TipBrowserActivity extends AppCompatActivity {
         TipFragment fragment = (TipFragment) adapter.getItem(viewPager.getCurrentItem());
         int postId = fragment.post.id;
 
-        boolean voteUp = false;
-        boolean removeVote = votedDown;
-
-        if (!receivedVotedOn)
+        if (!fragment.receivedVotedOn)
             return super.onOptionsItemSelected(item);
+
+        boolean voteUp = false;
+        boolean removeVote = fragment.votedDown;
 
         switch (item.getItemId()) {
             case R.id.action_vote_up:
                 voteUp = true;
-                removeVote = votedUp;
+                removeVote = fragment.votedUp;
             case R.id.action_vote_down:
                 final Context context = this;
                 if (!removeVote) {
-                    new DatabaseLink(this).voteOnPost(new DatabaseLink.DatabaseListener() {
+                    new DatabaseLink(this, true).voteOnPost(new DatabaseLink.DatabaseListener() {
                         @Override
                         void onGetResponse(String message) {
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
@@ -102,7 +102,7 @@ public class TipBrowserActivity extends AppCompatActivity {
                         }
                     }, postId, voteUp);
                 } else {
-                    new DatabaseLink(this).removeVote(new DatabaseLink.DatabaseListener() {
+                    new DatabaseLink(this, true).removeVote(new DatabaseLink.DatabaseListener() {
                         @Override
                         void onGetResponse(String message) {
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
@@ -128,6 +128,10 @@ public class TipBrowserActivity extends AppCompatActivity {
         private static final String ARG_POST = "post_object";
 
         public Post post;
+
+        boolean receivedVotedOn = false;
+        boolean votedUp = false;
+        boolean votedDown = false;
 
         public TipFragment() {
         }
@@ -172,6 +176,30 @@ public class TipBrowserActivity extends AppCompatActivity {
 
             // tags TODO
 
+            // Look up votedOn
+            receivedVotedOn = false;
+            new DatabaseLink(getActivity()).getVotedOnPost(new DatabaseLink.DatabaseListener() {
+                @Override
+                void onGetResponse(String json) {
+                    try {
+                        JSONObject response = new JSONObject(json);
+                        boolean vote_exists = response.getInt("vote_exists") == 1;
+                        boolean is_like = response.getInt("is_like") == 1;
+                        votedUp = vote_exists && is_like;
+                        votedDown = vote_exists && !is_like;
+                        receivedVotedOn = true;
+                    } catch (JSONException e) {
+                        receivedVotedOn = false;
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                void onError(String errorMsg) {
+                    receivedVotedOn = false;
+                    Log.e("TrafficTimeWaste", "Error getting votedOn: " + errorMsg);
+                }
+            }, post.id);
 
             return rootView;
         }

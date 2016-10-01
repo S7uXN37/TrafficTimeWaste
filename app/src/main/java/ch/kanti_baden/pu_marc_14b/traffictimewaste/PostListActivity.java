@@ -239,7 +239,7 @@ public class PostListActivity extends AppCompatActivity {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             private final View mView;
-            final TextView idView;
+            final TextView voteView;
             final TextView contentView;
             final TextView postedAtView;
             Post post;
@@ -247,15 +247,15 @@ public class PostListActivity extends AppCompatActivity {
             ViewHolder(View view) {
                 super(view);
                 mView = view;
-                idView = (TextView) view.findViewById(R.id.id);
+                voteView = (TextView) view.findViewById(R.id.id);
                 contentView = (TextView) view.findViewById(R.id.content);
                 postedAtView = (TextView) view.findViewById(R.id.postedAt);
             }
 
             void update(Post item, final int listIndex) {
                 post = item;
-                String id = ""+item.id;
-                idView.setText(id);
+                String id = ""+(item.votesUp-item.votesDown);
+                voteView.setText(id);
                 contentView.setText(item.content);
                 postedAtView.setText(item.postedAt);
 

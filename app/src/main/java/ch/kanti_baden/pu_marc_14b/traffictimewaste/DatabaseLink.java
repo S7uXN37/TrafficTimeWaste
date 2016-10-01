@@ -7,6 +7,7 @@ import android.net.http.SslCertificate;
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.SparseArray;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
@@ -20,7 +21,9 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.net.URLEncoder;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -30,6 +33,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -62,6 +66,9 @@ class DatabaseLink {
     private String USERNAME, PASSWORD;
 
     DatabaseLink(Activity parentActivity) {
+        this(parentActivity, false);
+    }
+    DatabaseLink(Activity parentActivity, boolean forceLogin) {
         activity = parentActivity;
         try {
             // Load CA certificate
@@ -102,8 +109,10 @@ class DatabaseLink {
         USERNAME = preferences.getString("username");
         PASSWORD = preferences.getString("password");
 
-        if (USERNAME == null || PASSWORD == null) {
-            Intent intent = new Intent(Intent.ACTION_) // TODO open LoginActivity
+        if ((USERNAME == null || PASSWORD == null) && forceLogin) {
+            // Open LoginActivity
+            Intent intent = new Intent(activity, LoginActivity.class);
+            intent.putExtra(LoginActivity.ARG_PREFS, (Serializable) preferences);
             parentActivity.startActivity(intent);
         }
     }
@@ -116,6 +125,42 @@ class DatabaseLink {
     }
     void testAuthentication(DatabaseListener listener, String username, String password) {
         loadUrl(listener, LOGIN_URL, "username=" + username + "&password=" + password);
+    }
+    private final SparseArray<String> syncedAccesses = new SparseArray<>();
+    String testAuthenticationSync(String username, String password) {
+        int syncedSize;
+        synchronized (syncedAccesses) {
+            syncedSize = syncedAccesses.size();
+            syncedAccesses.put(syncedSize, null);
+        }
+        final int id = syncedSize;
+
+        DatabaseListener listener = new DatabaseListener() {
+            @Override
+            void onGetResponse(String json) {
+                syncedAccesses.put(id, json);
+            }
+
+            @Override
+            void onError(String errorMsg) {
+                syncedAccesses.put(id, errorMsg);
+            }
+        };
+
+        testAuthentication(listener, username, password);
+
+        String stored;
+        while ((stored = syncedAccesses.get(id)) == null) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        syncedAccesses.put(id, null);
+
+        return stored;
     }
     void voteOnPost(DatabaseListener listener, int postId, boolean voteUp) {
         loadUrl(listener, DO_VOTE_URL, "username=" + USERNAME + "&password=" + PASSWORD + "&post_id=" + postId + "&vote=" + (voteUp ? '1' : '0'));

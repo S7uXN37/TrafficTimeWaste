@@ -3,6 +3,7 @@ package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 
@@ -50,6 +51,6 @@ public class Post implements Serializable {
                 ", posted at=" + postedAt + " / " + postedAtMillis +
                 ", owner=" + ownerName +
                 ", votes: (" + votesUp + ", " + votesDown + ")" +
-                ", tags=" + tags;
+                ", tags=" + Arrays.toString(tags);
     }
 }

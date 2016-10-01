@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Array;
 import java.net.URLEncoder;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -33,13 +32,15 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 @SuppressLint("SetJavaScriptEnabled")
 class DatabaseLink {
+
+    private static final String KEY_USERNAME = "username";
+    private static final String KEY_PASSWORD = "password";
 
     private static final String JSON_POSTS = "posts";
     private static final String JSON_ID = "id";
@@ -49,8 +50,9 @@ class DatabaseLink {
     private static final String JSON_VOTES_UP = "votes_up";
     private static final String JSON_VOTES_DOWN = "votes_down";
     private static final String JSON_TAGS = "tags";
-    private static final String JSON_SUCCESS = "success";
-    private static final String JSON_VOTE_EXISTS = "vote_exists";
+    static final String JSON_SUCCESS = "success";
+    static final String JSON_VOTE_EXISTS = "vote_exists";
+    static final String JSON_IS_LIKE = "is_like";
 
     private static final String GET_ALL_URL = "https://stuxnet.byethost13.com/PU/get_all_posts.php";
     private static final String GET_WITH_TAG_URL = "https://stuxnet.byethost13.com/PU/get_posts_by_tag.php";
@@ -102,12 +104,9 @@ class DatabaseLink {
         }
 
         // Read credentials
-        String key = "MyTopSecretKey";
-        for (int i = 0; i < 43; i+=3)
-            key += key.charAt(i%key.length());
-        SecurePreferences preferences = new SecurePreferences(parentActivity, "credentials", key, false);
-        USERNAME = preferences.getString("username");
-        PASSWORD = preferences.getString("password");
+        SecurePreferences preferences = getPreferences(parentActivity);
+        USERNAME = preferences.getString(KEY_USERNAME);
+        PASSWORD = preferences.getString(KEY_PASSWORD);
 
         if ((USERNAME == null || PASSWORD == null) && forceLogin) {
             // Open LoginActivity
@@ -172,6 +171,17 @@ class DatabaseLink {
         loadUrl(listener, GET_VOTED_ON_URL, "username=" + USERNAME + "&password=" + PASSWORD + "&post_id=" + postId);
     }
 
+    static void saveCredentials(Activity activity, String username, String password) {
+        SecurePreferences prefs = getPreferences(activity);
+        prefs.put(KEY_USERNAME, username);
+        prefs.put(KEY_PASSWORD, password);
+    }
+    private static SecurePreferences getPreferences(Activity activity) {
+        String key = "MyTopSecretKey";
+        for (int i = 0; i < 43; i+=3)
+            key += key.charAt(i%key.length());
+        return new SecurePreferences(activity, "credentials", key, true);
+    }
 
     private void loadUrl(
             final DatabaseListener databaseListener, final String url, final String postData) {
@@ -242,7 +252,7 @@ class DatabaseLink {
                 if (postData != null) {
                     byte[] bytes;
                     try {
-                        bytes = postData.getBytes("BASE64");
+                        bytes = URLEncoder.encode(postData, "UTF-8").getBytes();
                     } catch (UnsupportedEncodingException e) {
                         bytes = postData.getBytes();
                     }
@@ -325,6 +335,10 @@ class DatabaseLink {
             databaseListener.onGetResponse(json);
             resetWebView();
         }
+    }
+
+    Activity getActivity() {
+        return activity;
     }
 
 }

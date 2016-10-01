@@ -29,6 +29,7 @@ public class TipBrowserActivity extends AppCompatActivity {
     public static final String ARG_SCREEN_ID = "post_id";
 
     private ViewPager viewPager;
+    private Menu optionsMenu;
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -68,6 +69,7 @@ public class TipBrowserActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_tip_browser, menu);
+        optionsMenu = menu;
         return true;
     }
 
@@ -171,9 +173,6 @@ public class TipBrowserActivity extends AppCompatActivity {
             ((TextView) rootView.findViewById(R.id.ownerName))
                     .setText(post.ownerName);
 
-            // votes TODO
-
-
             // tags TODO
 
             // Look up votedOn
@@ -183,11 +182,20 @@ public class TipBrowserActivity extends AppCompatActivity {
                 void onGetResponse(String json) {
                     try {
                         JSONObject response = new JSONObject(json);
-                        boolean vote_exists = response.getInt("vote_exists") == 1;
-                        boolean is_like = response.getInt("is_like") == 1;
+                        boolean vote_exists = response.getInt(DatabaseLink.JSON_VOTE_EXISTS) == 1;
+                        boolean is_like = response.getInt(DatabaseLink.JSON_IS_LIKE) == 1;
                         votedUp = vote_exists && is_like;
                         votedDown = vote_exists && !is_like;
                         receivedVotedOn = true;
+
+                        if (votedUp || votedDown) {
+                            // TODO Change menu icons
+                            TipBrowserActivity activity = (TipBrowserActivity) getActivity();
+                            if (votedUp)
+                                activity.optionsMenu.getItem(0).setIcon(R.drawable.ic_thumb_up_white_24px_active);
+                            if (votedDown)
+                                activity.optionsMenu.getItem(1).setIcon(R.drawable.ic_thumb_down_white_24px_active);
+                        }
                     } catch (JSONException e) {
                         receivedVotedOn = false;
                         e.printStackTrace();

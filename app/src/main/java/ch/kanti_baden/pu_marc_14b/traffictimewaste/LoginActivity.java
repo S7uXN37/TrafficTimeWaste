@@ -193,7 +193,12 @@ public class LoginActivity extends AppCompatActivity {
 
             try {
                 JSONObject json = new JSONObject(response);
-                return (json.getInt("success") == 1);
+                boolean success = json.getInt(DatabaseLink.JSON_SUCCESS) == 1;
+
+                if (success)
+                    DatabaseLink.saveCredentials(link.getActivity(), mUsername, mPassword);
+
+                return success;
             } catch (JSONException e) {
                 return false;
             }

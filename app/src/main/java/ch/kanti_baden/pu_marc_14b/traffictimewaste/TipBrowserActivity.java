@@ -23,6 +23,8 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import eu.fiskur.chipcloud.ChipCloud;
+
 public class TipBrowserActivity extends AppCompatActivity {
 
     public static final String ARG_POSTS = "posts";
@@ -82,43 +84,44 @@ public class TipBrowserActivity extends AppCompatActivity {
         if (!fragment.receivedVotedOn)
             return super.onOptionsItemSelected(item);
 
-        boolean voteUp = false;
-        boolean removeVote = fragment.votedDown;
-
         switch (item.getItemId()) {
             case R.id.action_vote_up:
-                voteUp = true;
-                removeVote = fragment.votedUp;
+                submitVote(fragment.votedUp, postId, true);
+                return true;
             case R.id.action_vote_down:
-                final Context context = this;
-                if (!removeVote) {
-                    new DatabaseLink(this, true).voteOnPost(new DatabaseLink.DatabaseListener() {
-                        @Override
-                        void onGetResponse(String message) {
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-                        }
-
-                        @Override
-                        void onError(String errorMsg) {
-                            Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show();
-                        }
-                    }, postId, voteUp);
-                } else {
-                    new DatabaseLink(this, true).removeVote(new DatabaseLink.DatabaseListener() {
-                        @Override
-                        void onGetResponse(String message) {
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-                        }
-
-                        @Override
-                        void onError(String errorMsg) {
-                            Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show();
-                        }
-                    }, postId);
-                }
+                submitVote(fragment.votedDown, postId, false);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
+        }
+    }
+
+    void submitVote(boolean removeVote, int postId, boolean voteUp) {
+        final Context context = this;
+        if (!removeVote) {
+            new DatabaseLink(this, true).voteOnPost(new DatabaseLink.DatabaseListener() {
+                @Override
+                void onGetResponse(String message) {
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                void onError(String errorMsg) {
+                    Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show();
+                }
+            }, postId, voteUp);
+        } else {
+            new DatabaseLink(this, true).removeVote(new DatabaseLink.DatabaseListener() {
+                @Override
+                void onGetResponse(String message) {
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                void onError(String errorMsg) {
+                    Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show();
+                }
+            }, postId);
         }
     }
 
@@ -136,6 +139,7 @@ public class TipBrowserActivity extends AppCompatActivity {
         boolean votedDown = false;
 
         public TipFragment() {
+
         }
 
         public static TipFragment newInstance(Post content) {
@@ -162,7 +166,7 @@ public class TipBrowserActivity extends AppCompatActivity {
 
             // update fields
             // content
-            ((TextView) rootView.findViewById(R.id.detail_content))
+            ((TextView) rootView.findViewById(R.id.detailContent))
                     .setText(post.content);
 
             // date
@@ -174,6 +178,8 @@ public class TipBrowserActivity extends AppCompatActivity {
                     .setText(post.ownerName);
 
             // tags TODO
+            ((ChipCloud) rootView.findViewById(R.id.tagView))
+                    .addChips(post.tags);
 
             // Look up votedOn
             receivedVotedOn = false;
@@ -189,16 +195,16 @@ public class TipBrowserActivity extends AppCompatActivity {
                         receivedVotedOn = true;
 
                         if (votedUp || votedDown) {
-                            // TODO Change menu icons
+                            // Change menu icons
                             TipBrowserActivity activity = (TipBrowserActivity) getActivity();
                             if (votedUp)
-                                activity.optionsMenu.getItem(0).setIcon(R.drawable.ic_thumb_up_white_24px_active);
+                                activity.optionsMenu.getItem(0).setIcon(R.drawable.ic_thumb_up_24px_active);
                             if (votedDown)
-                                activity.optionsMenu.getItem(1).setIcon(R.drawable.ic_thumb_down_white_24px_active);
+                                activity.optionsMenu.getItem(1).setIcon(R.drawable.ic_thumb_down_24px_active);
                         }
                     } catch (JSONException e) {
                         receivedVotedOn = false;
-                        e.printStackTrace();
+                        Log.e("TrafficTimeWaste", "Error retrieving votes", e);
                     }
                 }
 
@@ -217,9 +223,9 @@ public class TipBrowserActivity extends AppCompatActivity {
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
      * one of the sections/tabs/pages.
      */
-    public class SectionsPagerAdapter extends FragmentPagerAdapter {
+    public static class SectionsPagerAdapter extends FragmentPagerAdapter {
 
-        private Post[] posts;
+        private final Post[] posts;
 
         SectionsPagerAdapter(FragmentManager fm, Post[] data) {
             super(fm);

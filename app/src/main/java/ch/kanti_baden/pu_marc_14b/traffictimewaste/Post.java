@@ -9,18 +9,18 @@ import java.util.Locale;
 
 public class Post implements Serializable {
 
-    public int id;
-    public String content;
-    public String postedAt;
-    public long postedAtMillis;
-    public String ownerName;
-    public int votesUp;
-    public int votesDown;
-    public String[] tags;
+    public final int id;
+    public final String content;
+    public final String postedAt;
+    public final long postedAtMillis;
+    public final String ownerName;
+    public final int votesUp;
+    public final int votesDown;
+    public final String[] tags;
     public boolean clickable = true;
 
     public Post(int postId, String text, String timePosted, String username,
-                int upvotes, int downvotes, String[] postTags) {
+                int upvotes, int downvotes, final String[] postTags) {
         id = postId;
         content = text;
         postedAt = timePosted;
@@ -28,7 +28,7 @@ public class Post implements Serializable {
         ownerName = username;
         votesUp = upvotes;
         votesDown = downvotes;
-        tags = postTags;
+        tags = postTags.clone();
     }
 
     /**

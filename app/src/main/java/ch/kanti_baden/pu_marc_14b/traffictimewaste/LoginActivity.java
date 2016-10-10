@@ -200,7 +200,7 @@ public class LoginActivity extends AppCompatActivity {
 
                 return success;
             } catch (JSONException e) {
-                return false;
+                return Boolean.FALSE;
             }
         }
 

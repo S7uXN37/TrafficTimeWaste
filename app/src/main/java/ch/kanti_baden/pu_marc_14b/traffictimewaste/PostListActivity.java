@@ -44,7 +44,7 @@ enum SORT_TYPE {
  */
 public class PostListActivity extends AppCompatActivity {
 
-    public static int sortType = 0;
+    private static int sortType = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -161,14 +161,14 @@ public class PostListActivity extends AppCompatActivity {
         Log.v("TrafficTimeWaste", "Querying db...");
     }
 
-    public static Post[] sortPosts(Post[] posts) {
+    private static Post[] sortPosts(Post[] posts) {
         Comparator<Post> comparator = null;
         switch (SORT_TYPE.values()[sortType]) {
             case NEWEST:
                 comparator = new Comparator<Post>() {
                     @Override
                     public int compare(Post post, Post t1) {
-                        return -Long.compare(post.postedAtMillis, t1.postedAtMillis);
+                        return Long.compare(t1.postedAtMillis, post.postedAtMillis);
                     }
                 };
                 break;
@@ -184,7 +184,7 @@ public class PostListActivity extends AppCompatActivity {
                 comparator = new Comparator<Post>() {
                     @Override
                     public int compare(Post post, Post t1) {
-                        return -Integer.compare(post.votesUp, t1.votesUp);
+                        return Integer.compare(t1.votesUp, post.votesUp);
                     }
                 };
                 break;
@@ -192,7 +192,7 @@ public class PostListActivity extends AppCompatActivity {
                 comparator = new Comparator<Post>() {
                     @Override
                     public int compare(Post post, Post t1) {
-                        return -Integer.compare(post.votesDown, t1.votesDown);
+                        return Integer.compare(t1.votesDown, post.votesDown);
                     }
                 };
                 break;
@@ -228,7 +228,7 @@ public class PostListActivity extends AppCompatActivity {
                 p = posts[position];
             }
 
-            Log.v("TrafficTimeWaste", "Updating Holder, post: " + p.toString());
+            Log.v("TrafficTimeWaste", "Updating Holder, post: " + p);
             holder.update(p, position);
         }
 
@@ -242,7 +242,6 @@ public class PostListActivity extends AppCompatActivity {
             final TextView voteView;
             final TextView contentView;
             final TextView postedAtView;
-            Post post;
 
             ViewHolder(View view) {
                 super(view);
@@ -253,7 +252,6 @@ public class PostListActivity extends AppCompatActivity {
             }
 
             void update(Post item, final int listIndex) {
-                post = item;
                 String id = ""+(item.votesUp-item.votesDown);
                 voteView.setText(id);
                 contentView.setText(item.content);

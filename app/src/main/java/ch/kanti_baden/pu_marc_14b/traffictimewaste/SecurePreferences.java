@@ -20,35 +20,32 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.support.annotation.Nullable;
 import android.util.Base64;
+import android.util.Log;
 
 
 class SecurePreferences {
-
-    static class SecurePreferencesException extends RuntimeException {
-        SecurePreferencesException(Throwable e) {
-            super(e);
-        }
-
-    }
-
     private static final String TRANSFORMATION = "AES/CBC/PKCS5Padding";
     private static final String KEY_TRANSFORMATION = "AES/CFB/PKCS5Padding";
     private static final String SECRET_KEY_HASH_TRANSFORMATION = "SHA-256";
-    private static final String CHARSET = "UTF-8";
+    private static final Charset CHARSET = StandardCharsets.UTF_8;
 
     private final boolean encryptKeys;
     private final Cipher writer;
@@ -59,32 +56,25 @@ class SecurePreferences {
     /**
      * This will initialize an instance of the SecurePreferences class
      * @param context your current context.
-     * @param preferenceName name of preferences file (preferenceName.xml)
      * @param secureKey the key used for encryption, finding a good key scheme is hard.
      * Hardcoding your key in the application is bad, but better than plaintext preferences. Having the user enter the key upon application launch is a safe(r) alternative, but annoying to the user.
-     * @param encryptKeys settings this to false will only encrypt the values,
      * true will encrypt both values and keys. Keys can contain a lot of information about
      * the plaintext value of the value which can be used to decipher the value.
-     * @throws SecurePreferencesException
+     * @throws GeneralSecurityException
      */
-    SecurePreferences(Context context, String preferenceName, String secureKey, boolean encryptKeys) throws SecurePreferencesException {
-        try {
-            this.writer = Cipher.getInstance(TRANSFORMATION);
-            this.reader = Cipher.getInstance(TRANSFORMATION);
-            this.keyWriter = Cipher.getInstance(KEY_TRANSFORMATION);
+    SecurePreferences(Context context, String secureKey) throws GeneralSecurityException {
+        this.writer = Cipher.getInstance(TRANSFORMATION);
+        this.reader = Cipher.getInstance(TRANSFORMATION);
+        this.keyWriter = Cipher.getInstance(KEY_TRANSFORMATION);
 
-            initCiphers(secureKey);
+        initCiphers(secureKey);
 
-            this.preferences = context.getSharedPreferences(preferenceName, Context.MODE_PRIVATE);
+        this.preferences = context.getSharedPreferences("credentials", Context.MODE_PRIVATE);
 
-            this.encryptKeys = encryptKeys;
-        }
-        catch (GeneralSecurityException | UnsupportedEncodingException e) {
-            throw new SecurePreferencesException(e);
-        }
+        this.encryptKeys = true;
     }
 
-    private void initCiphers(String secureKey) throws UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeyException,
+    private void initCiphers(String secureKey) throws NoSuchAlgorithmException, InvalidKeyException,
             InvalidAlgorithmParameterException {
         IvParameterSpec ivSpec = getIv();
         SecretKeySpec secretKey = getSecretKey(secureKey);
@@ -96,16 +86,16 @@ class SecurePreferences {
 
     private IvParameterSpec getIv() {
         byte[] iv = new byte[writer.getBlockSize()];
-        System.arraycopy("fldsjfodasjifudslfjdsaofshaufihadsf".getBytes(), 0, iv, 0, writer.getBlockSize());
+        System.arraycopy("fldsjfodasjifudslfjdsaofshaufihadsf".getBytes(StandardCharsets.UTF_8), 0, iv, 0, writer.getBlockSize());
         return new IvParameterSpec(iv);
     }
 
-    private SecretKeySpec getSecretKey(String key) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    private SecretKeySpec getSecretKey(String key) throws NoSuchAlgorithmException {
         byte[] keyBytes = createKeyBytes(key);
         return new SecretKeySpec(keyBytes, TRANSFORMATION);
     }
 
-    private byte[] createKeyBytes(String key) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    private byte[] createKeyBytes(String key) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance(SECRET_KEY_HASH_TRANSFORMATION);
         md.reset();
         return md.digest(key.getBytes(CHARSET));
@@ -120,20 +110,12 @@ class SecurePreferences {
         }
     }
 
-    public boolean containsKey(String key) {
-        return preferences.contains(toKey(key));
-    }
-
-    public void removeValue(String key) {
-        preferences.edit().remove(toKey(key)).apply();
-    }
-
-    String getString(String key) throws SecurePreferencesException {
+    String getString(String key) {
         if (preferences.contains(toKey(key))) {
             String securedEncodedValue = preferences.getString(toKey(key), "");
             return decrypt(securedEncodedValue);
-        }
-        return null;
+        } else
+            return null;
     }
 
     public void clear() {
@@ -143,43 +125,39 @@ class SecurePreferences {
     private String toKey(String key) {
         if (encryptKeys)
             return encrypt(key, keyWriter);
-        else return key;
+        else
+            return key;
     }
 
-    private void putValue(String key, String value) throws SecurePreferencesException {
+    private void putValue(String key, String value) {
         String secureValueEncoded = encrypt(value, writer);
 
         preferences.edit().putString(key, secureValueEncoded).apply();
     }
 
-    private String encrypt(String value, Cipher writer) throws SecurePreferencesException {
+    private String encrypt(String value, Cipher writer) {
         byte[] secureValue;
-        try {
-            secureValue = convert(writer, value.getBytes(CHARSET));
-        }
-        catch (UnsupportedEncodingException e) {
-            throw new SecurePreferencesException(e);
-        }
+        secureValue = convert(writer, value.getBytes(CHARSET));
         return Base64.encodeToString(secureValue, Base64.NO_WRAP);
     }
 
+    @Nullable
     private String decrypt(String securedEncodedValue) {
         byte[] securedValue = Base64.decode(securedEncodedValue, Base64.NO_WRAP);
         byte[] value = convert(reader, securedValue);
-        try {
+        if (value != null)
             return new String(value, CHARSET);
-        }
-        catch (UnsupportedEncodingException e) {
-            throw new SecurePreferencesException(e);
-        }
+        else
+            return null;
     }
 
-    private static byte[] convert(Cipher cipher, byte[] bs) throws SecurePreferencesException {
+    @Nullable
+    private static byte[] convert(Cipher cipher, byte[] bs) {
         try {
             return cipher.doFinal(bs);
-        }
-        catch (Exception e) {
-            throw new SecurePreferencesException(e);
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
+            Log.e("TrafficTimeWaste", "Could not read SecurePreferences", e);
+            return null;
         }
     }
 }

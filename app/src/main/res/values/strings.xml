@@ -1,16 +1,16 @@
 <resources>
     <string name="app_name">TrafficTimeWaste</string>
-    <string name="title_activity_tip_overview">TipOverview</string>
-    <string name="title_post_list">Posts</string>
+
+    <!-- Strings related to ActionButtons -->
     <string name="action_sort">Sort</string>
     <string name="action_search">Search</string>
     <string name="action_vote_up">Thumbs up</string>
     <string name="action_vote_down">Thumbs down</string>
     <string name="select_sorting">Sort by</string>
     <string name="search_hint">Search posts</string>
-    <string name="title_activity_login">Sign in</string>
 
     <!-- Strings related to login -->
+    <string name="title_activity_login">Sign in</string>
     <string name="prompt_email">Email</string>
     <string name="prompt_password">Password</string>
     <string name="action_sign_in">Sign in or register</string>

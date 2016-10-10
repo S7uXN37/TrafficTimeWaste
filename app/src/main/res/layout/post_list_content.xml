@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
@@ -11,7 +12,8 @@
         android:layout_height="wrap_content"
         android:layout_margin="@dimen/text_margin"
         android:textAppearance="?attr/textAppearanceListItem"
-        android:text="id" />
+        android:text="id"
+        tools:ignore="HardcodedText" />
 
     <TextView
         android:id="@+id/content"
@@ -25,7 +27,8 @@
         android:layout_toEndOf="@+id/id"
         android:layout_toStartOf="@id/postedAt"
         android:ellipsize="end"
-        android:maxLines="3" />
+        android:maxLines="3"
+        tools:ignore="HardcodedText" />
 
     <TextView
         android:id="@+id/postedAt"
@@ -36,6 +39,7 @@
         android:layout_marginLeft="@dimen/text_margin"
         android:layout_marginRight="@dimen/text_margin"
         android:layout_alignTop="@+id/id"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentEnd="true"
+        tools:ignore="HardcodedText" />
 
 </RelativeLayout>

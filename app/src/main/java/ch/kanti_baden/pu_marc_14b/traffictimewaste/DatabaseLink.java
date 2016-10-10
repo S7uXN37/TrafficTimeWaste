@@ -24,6 +24,8 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -41,6 +43,7 @@ class DatabaseLink {
 
     private static final String KEY_USERNAME = "username";
     private static final String KEY_PASSWORD = "password";
+    private static final String LOGIN_FAILED_STR = "{\"success\"=0}";
 
     private static final String JSON_POSTS = "posts";
     private static final String JSON_ID = "id";
@@ -61,11 +64,13 @@ class DatabaseLink {
     private static final String LOGIN_URL = "https://stuxnet.byethost13.com/PU/test_login.php";
     private static final String GET_VOTED_ON_URL = "https://stuxnet.byethost13.com/PU/get_voted_on.php";
 
-    private Activity activity;
+    private final Activity activity;
     private X509TrustManager[] trustManagers;
     private WebView lastWebView;
 
-    private String USERNAME, PASSWORD;
+    private String USERNAME;
+    private String PASSWORD;
+    private boolean canAuthenticate;
 
     DatabaseLink(Activity parentActivity) {
         this(parentActivity, false);
@@ -100,19 +105,29 @@ class DatabaseLink {
                 trustManagers[i] = (X509TrustManager) tmf.getTrustManagers()[i];
             }
         } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
-            e.printStackTrace();
+            Log.e("TrafficTimeWaste", "Error instantiating DatabaseLink", e);
         }
 
-        // Read credentials
-        SecurePreferences preferences = getPreferences(parentActivity);
-        USERNAME = preferences.getString(KEY_USERNAME);
-        PASSWORD = preferences.getString(KEY_PASSWORD);
+        try {
+            // Read credentials
+            SecurePreferences preferences = getPreferences(parentActivity);
+            USERNAME = preferences.getString(KEY_USERNAME);
+            PASSWORD = preferences.getString(KEY_PASSWORD);
 
-        if ((USERNAME == null || PASSWORD == null) && forceLogin) {
-            // Open LoginActivity
-            Intent intent = new Intent(activity, LoginActivity.class);
-            intent.putExtra(LoginActivity.ARG_PREFS, (Serializable) preferences);
-            parentActivity.startActivity(intent);
+            if ((USERNAME == null || PASSWORD == null) && forceLogin) {
+                canAuthenticate = false;
+
+                // Open LoginActivity
+                Intent intent = new Intent(activity, LoginActivity.class);
+                intent.putExtra(LoginActivity.ARG_PREFS, (Serializable) preferences);
+                parentActivity.startActivity(intent);
+            } else
+                canAuthenticate = true;
+        } catch (GeneralSecurityException e) {
+            Log.w("TrafficTimeWaste", "Could not instantiate SecurePreferences, authentication unavailable", e);
+            USERNAME = null;
+            PASSWORD = null;
+            canAuthenticate = false;
         }
     }
 
@@ -123,10 +138,16 @@ class DatabaseLink {
         loadUrl(databaseListener, GET_WITH_TAG_URL, "tag_name=" + tag);
     }
     void testAuthentication(DatabaseListener listener, String username, String password) {
-        loadUrl(listener, LOGIN_URL, "username=" + username + "&password=" + password);
+        if (!canAuthenticate)
+            listener.onGetResponse(LOGIN_FAILED_STR);
+        else
+            loadUrl(listener, LOGIN_URL, "username=" + username + "&password=" + password);
     }
     private final SparseArray<String> syncedAccesses = new SparseArray<>();
     String testAuthenticationSync(String username, String password) {
+        if (!canAuthenticate)
+            return LOGIN_FAILED_STR;
+
         int syncedSize;
         synchronized (syncedAccesses) {
             syncedSize = syncedAccesses.size();
@@ -153,7 +174,7 @@ class DatabaseLink {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Log.e("TrafficTimeWaste", "Error testing authentication", e);
             }
         }
 
@@ -172,15 +193,20 @@ class DatabaseLink {
     }
 
     static void saveCredentials(Activity activity, String username, String password) {
-        SecurePreferences prefs = getPreferences(activity);
-        prefs.put(KEY_USERNAME, username);
-        prefs.put(KEY_PASSWORD, password);
+        try {
+            SecurePreferences prefs = getPreferences(activity);
+            prefs.put(KEY_USERNAME, username);
+            prefs.put(KEY_PASSWORD, password);
+        } catch (GeneralSecurityException e) {
+            Log.e("TrafficTimeWaste", "Unable to save credentials", e);
+        }
     }
-    private static SecurePreferences getPreferences(Activity activity) {
-        String key = "MyTopSecretKey";
+
+    private static SecurePreferences getPreferences(Activity activity) throws GeneralSecurityException {
+        StringBuilder key = new StringBuilder("MyTopSecretKey");
         for (int i = 0; i < 43; i+=3)
-            key += key.charAt(i%key.length());
-        return new SecurePreferences(activity, "credentials", key, true);
+            key.append(key.charAt(i%key.length()));
+        return new SecurePreferences(activity, key.toString());
     }
 
     private void loadUrl(
@@ -238,10 +264,10 @@ class DatabaseLink {
 
                         // Callback to handler
                         if (trusted) {
-                            Log.v("TrafficTimeWaste", "Manually trusting certificate: " + error.getCertificate().toString());
+                            Log.v("TrafficTimeWaste", "Manually trusting certificate: " + error.getCertificate());
                             handler.proceed();
                         } else {
-                            Log.v("TrafficTimeWaste", "SSl error: " + error.toString());
+                            Log.v("TrafficTimeWaste", "SSl error: " + error);
                             databaseListener.onError(error.toString());
                             super.onReceivedSslError(view,handler,error);
                         }
@@ -252,9 +278,9 @@ class DatabaseLink {
                 if (postData != null) {
                     byte[] bytes;
                     try {
-                        bytes = URLEncoder.encode(postData, "UTF-8").getBytes();
+                        bytes = URLEncoder.encode(postData, StandardCharsets.UTF_8.name()).getBytes(StandardCharsets.UTF_8);
                     } catch (UnsupportedEncodingException e) {
-                        bytes = postData.getBytes();
+                        bytes = postData.getBytes(StandardCharsets.UTF_8);
                     }
                     webView.postUrl(url, bytes);
                 } else {
@@ -268,7 +294,7 @@ class DatabaseLink {
         activity.runOnUiThread(run);
     }
 
-    static Post[] parseJson(JSONObject json) throws IllegalArgumentException, JSONException {
+    static Post[] parseJson(JSONObject json) throws JSONException {
         Log.v("TrafficTimeWaste", "JSON: " + json);
 
         if (json.getInt(JSON_SUCCESS) != 1)
@@ -321,7 +347,7 @@ class DatabaseLink {
     }
 
     private class JsonGrabberJavaScriptInterface {
-        private DatabaseListener databaseListener;
+        private final DatabaseListener databaseListener;
 
         JsonGrabberJavaScriptInterface(DatabaseListener listener) {
             databaseListener = listener;

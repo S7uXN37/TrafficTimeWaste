@@ -4,13 +4,13 @@
 
     <item
         android:id="@+id/action_vote_up"
-        android:icon="@drawable/ic_thumb_up_white_24px"
+        android:icon="@drawable/ic_thumb_up_24px_inactive"
         android:title="@string/action_vote_up"
         app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/action_vote_down"
-        android:icon="@drawable/ic_thumb_down_white_24px"
+        android:icon="@drawable/ic_thumb_down_24px_inactive"
         android:title="@string/action_vote_down"
         app:showAsAction="ifRoom"/>
 

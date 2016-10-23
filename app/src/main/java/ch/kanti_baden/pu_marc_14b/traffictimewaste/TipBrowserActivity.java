@@ -23,6 +23,7 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import eu.fiskur.chipcloud.Chip;
 import eu.fiskur.chipcloud.ChipCloud;
 
 public class TipBrowserActivity extends AppCompatActivity {
@@ -65,6 +66,40 @@ public class TipBrowserActivity extends AppCompatActivity {
         viewPager = (ViewPager) findViewById(R.id.container);
         viewPager.setAdapter(sectionsPagerAdapter);
         viewPager.setCurrentItem(postId);
+        viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener(){
+            @Override
+            public void onPageSelected(int position) {
+                updateThumbColors();
+            }
+        });
+    }
+
+    private void updateThumbColors() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                SectionsPagerAdapter adapter = (SectionsPagerAdapter) viewPager.getAdapter();
+                TipFragment fragment = adapter.children[viewPager.getCurrentItem()];
+
+                Log.v("TrafficTimeWaste", "Updating thumb colors: voteUp=" + fragment.votedUp + " voteDown=" + fragment.votedDown);
+
+                // Change menu icons
+                if (fragment.receivedVotedOn) {
+                    if (fragment.votedUp)
+                        optionsMenu.getItem(0).setIcon(R.drawable.ic_thumb_up_24px_active);
+                    else
+                        optionsMenu.getItem(0).setIcon(R.drawable.ic_thumb_up_24px_inactive);
+
+                    if (fragment.votedDown)
+                        optionsMenu.getItem(1).setIcon(R.drawable.ic_thumb_down_24px_active);
+                    else
+                        optionsMenu.getItem(1).setIcon(R.drawable.ic_thumb_down_24px_inactive);
+                } else {
+                    optionsMenu.getItem(0).setIcon(R.drawable.ic_thumb_up_24px_pending);
+                    optionsMenu.getItem(1).setIcon(R.drawable.ic_thumb_down_24px_pending);
+                }
+            }
+        });
     }
 
     @Override
@@ -78,18 +113,17 @@ public class TipBrowserActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         SectionsPagerAdapter adapter = (SectionsPagerAdapter) viewPager.getAdapter();
-        TipFragment fragment = (TipFragment) adapter.getItem(viewPager.getCurrentItem());
+        TipFragment fragment = adapter.children[viewPager.getCurrentItem()];
         int postId = fragment.post.id;
-
-        if (!fragment.receivedVotedOn)
-            return super.onOptionsItemSelected(item);
 
         switch (item.getItemId()) {
             case R.id.action_vote_up:
-                submitVote(fragment.votedUp, postId, true);
+                if (fragment.receivedVotedOn)
+                    submitVote(fragment.votedUp, postId, true);
                 return true;
             case R.id.action_vote_down:
-                submitVote(fragment.votedDown, postId, false);
+                if (fragment.receivedVotedOn)
+                    submitVote(fragment.votedDown, postId, false);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -99,10 +133,11 @@ public class TipBrowserActivity extends AppCompatActivity {
     void submitVote(boolean removeVote, int postId, boolean voteUp) {
         final Context context = this;
         if (!removeVote) {
-            new DatabaseLink(this, true).voteOnPost(new DatabaseLink.DatabaseListener() {
+            DatabaseLink.instance.voteOnPost(new DatabaseLink.DatabaseListener() {
                 @Override
                 void onGetResponse(String message) {
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                    causeFragmentUpdate();
                 }
 
                 @Override
@@ -111,10 +146,11 @@ public class TipBrowserActivity extends AppCompatActivity {
                 }
             }, postId, voteUp);
         } else {
-            new DatabaseLink(this, true).removeVote(new DatabaseLink.DatabaseListener() {
+            DatabaseLink.instance.removeVote(new DatabaseLink.DatabaseListener() {
                 @Override
                 void onGetResponse(String message) {
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                    causeFragmentUpdate();
                 }
 
                 @Override
@@ -123,6 +159,13 @@ public class TipBrowserActivity extends AppCompatActivity {
                 }
             }, postId);
         }
+    }
+
+    void causeFragmentUpdate() {
+        SectionsPagerAdapter adapter = (SectionsPagerAdapter) viewPager.getAdapter();
+        TipFragment fragment = adapter.children[viewPager.getCurrentItem()];
+        fragment.updateVotes();
+        updateThumbColors();
     }
 
     /**
@@ -138,9 +181,7 @@ public class TipBrowserActivity extends AppCompatActivity {
         boolean votedUp = false;
         boolean votedDown = false;
 
-        public TipFragment() {
-
-        }
+        public TipFragment() { }
 
         public static TipFragment newInstance(Post content) {
             TipFragment fragment = new TipFragment();
@@ -159,7 +200,7 @@ public class TipBrowserActivity extends AppCompatActivity {
             // get Post
             if (!(getArguments().getSerializable(ARG_POST) instanceof Post))
                 throw new IllegalArgumentException("ARG_POST must be of type Post");
-            post = (Post) getArguments().getSerializable(ARG_POST);
+            post = (Post) getArguments().getSerializable(ARG_POST); Log.v("TrafficTimeWaste", "Post saved: " + post);
 
             if (post == null)
                 throw new IllegalArgumentException("Post cannot be NULL");
@@ -177,13 +218,19 @@ public class TipBrowserActivity extends AppCompatActivity {
             ((TextView) rootView.findViewById(R.id.ownerName))
                     .setText(post.ownerName);
 
-            // tags TODO
-            ((ChipCloud) rootView.findViewById(R.id.tagView))
-                    .addChips(post.tags);
+            // tags
+            ChipCloud chips = (ChipCloud) rootView.findViewById(R.id.tagView);
+            chips.addChips(post.tags);
 
             // Look up votedOn
+            updateVotes();
+
+            return rootView;
+        }
+
+        void updateVotes() {
             receivedVotedOn = false;
-            new DatabaseLink(getActivity()).getVotedOnPost(new DatabaseLink.DatabaseListener() {
+            DatabaseLink.instance.getVotedOnPost(new DatabaseLink.DatabaseListener() {
                 @Override
                 void onGetResponse(String json) {
                     try {
@@ -194,14 +241,15 @@ public class TipBrowserActivity extends AppCompatActivity {
                         votedDown = vote_exists && !is_like;
                         receivedVotedOn = true;
 
-                        if (votedUp || votedDown) {
-                            // Change menu icons
-                            TipBrowserActivity activity = (TipBrowserActivity) getActivity();
-                            if (votedUp)
-                                activity.optionsMenu.getItem(0).setIcon(R.drawable.ic_thumb_up_24px_active);
-                            if (votedDown)
-                                activity.optionsMenu.getItem(1).setIcon(R.drawable.ic_thumb_down_24px_active);
-                        }
+                        Log.v("TrafficTimeWaste", "Received vote data: exists=" + vote_exists + " is_like=" + is_like + ", updating thumbs...");
+
+                        TipBrowserActivity activity = (TipBrowserActivity) getActivity();
+                        SectionsPagerAdapter adapter = (SectionsPagerAdapter) activity.viewPager.getAdapter();
+                        TipFragment fragment = adapter.children[activity.viewPager.getCurrentItem()];
+
+                        // Update thumbs if selected
+                        if (fragment.post.id == post.id)
+                            activity.updateThumbColors();
                     } catch (JSONException e) {
                         receivedVotedOn = false;
                         Log.e("TrafficTimeWaste", "Error retrieving votes", e);
@@ -214,8 +262,6 @@ public class TipBrowserActivity extends AppCompatActivity {
                     Log.e("TrafficTimeWaste", "Error getting votedOn: " + errorMsg);
                 }
             }, post.id);
-
-            return rootView;
         }
     }
 
@@ -226,22 +272,25 @@ public class TipBrowserActivity extends AppCompatActivity {
     public static class SectionsPagerAdapter extends FragmentPagerAdapter {
 
         private final Post[] posts;
+        TipFragment[] children;
 
         SectionsPagerAdapter(FragmentManager fm, Post[] data) {
             super(fm);
             posts = data;
+            children = new TipFragment[posts.length];
         }
 
         @Override
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a TipFragment (defined as a static inner class below).
-            return TipFragment.newInstance(posts[position]);
+            TipFragment fragment = TipFragment.newInstance(posts[position]);
+            children[position] = fragment;
+            return fragment;
         }
 
         @Override
         public int getCount() {
-            // Show 3 total pages.
             return posts.length;
         }
 

@@ -40,9 +40,7 @@
         android:id="@+id/tagView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        chipcloud:selectMode="single"
-        chipcloud:selectedColor="@color/chip"
-        chipcloud:deselectedColor="@color/chip" />
+        chipcloud:selectMode="required"/>
 
 
 </RelativeLayout>

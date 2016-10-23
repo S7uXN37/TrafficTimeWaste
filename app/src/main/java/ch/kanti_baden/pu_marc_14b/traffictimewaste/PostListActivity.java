@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -54,6 +55,15 @@ public class PostListActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
+
+        if (DatabaseLink.instance == null) {
+            try {
+                new DatabaseLink(this);
+            } catch (IllegalStateException e) {
+                DatabaseLink.initPreferences(this);
+                new DatabaseLink(this);
+            }
+        }
 
         setupRecyclerViewAsync((FrameLayout) findViewById(R.id.frameLayout));
     }
@@ -155,9 +165,9 @@ public class PostListActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         if (Intent.ACTION_SEARCH.equals(intent.getAction()))
-            new DatabaseLink(this).getPostsWithTag(listener, intent.getStringExtra(SearchManager.QUERY));
+            DatabaseLink.instance.getPostsWithTag(listener, intent.getStringExtra(SearchManager.QUERY));
         else
-            new DatabaseLink(this).getAllPosts(listener);
+            DatabaseLink.instance.getAllPosts(listener);
         Log.v("TrafficTimeWaste", "Querying db...");
     }
 

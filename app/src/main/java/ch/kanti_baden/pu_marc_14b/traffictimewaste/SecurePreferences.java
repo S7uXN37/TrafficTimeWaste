@@ -86,7 +86,7 @@ class SecurePreferences {
 
     private IvParameterSpec getIv() {
         byte[] iv = new byte[writer.getBlockSize()];
-        System.arraycopy("fldsjfodasjifudslfjdsaofshaufihadsf".getBytes(StandardCharsets.UTF_8), 0, iv, 0, writer.getBlockSize());
+        System.arraycopy("fzjJM odasii_JUslfjvsaofSG5ufihAS/f".getBytes(StandardCharsets.UTF_8), 0, iv, 0, writer.getBlockSize());
         return new IvParameterSpec(iv);
     }
 
@@ -103,7 +103,7 @@ class SecurePreferences {
 
     void put(String key, String value) {
         if (value == null) {
-            preferences.edit().remove(toKey(key)).apply();
+            preferences.edit().remove(toKey(key)).commit();
         }
         else {
             putValue(toKey(key), value);
@@ -119,7 +119,7 @@ class SecurePreferences {
     }
 
     public void clear() {
-        preferences.edit().clear().apply();
+        preferences.edit().clear().commit();
     }
 
     private String toKey(String key) {
@@ -132,7 +132,7 @@ class SecurePreferences {
     private void putValue(String key, String value) {
         String secureValueEncoded = encrypt(value, writer);
 
-        preferences.edit().putString(key, secureValueEncoded).apply();
+        preferences.edit().putString(key, secureValueEncoded).commit();
     }
 
     private String encrypt(String value, Cipher writer) {

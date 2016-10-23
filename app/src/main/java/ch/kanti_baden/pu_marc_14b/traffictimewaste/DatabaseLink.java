@@ -2,7 +2,12 @@ package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.http.SslCertificate;
 import android.net.http.SslError;
 import android.os.Bundle;
@@ -21,9 +26,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -43,7 +45,6 @@ class DatabaseLink {
 
     private static final String KEY_USERNAME = "username";
     private static final String KEY_PASSWORD = "password";
-    private static final String LOGIN_FAILED_STR = "{\"success\"=0}";
 
     private static final String JSON_POSTS = "posts";
     private static final String JSON_ID = "id";
@@ -54,6 +55,7 @@ class DatabaseLink {
     private static final String JSON_VOTES_DOWN = "votes_down";
     private static final String JSON_TAGS = "tags";
     static final String JSON_SUCCESS = "success";
+    static final String JSON_MESSAGE = "message";
     static final String JSON_VOTE_EXISTS = "vote_exists";
     static final String JSON_IS_LIKE = "is_like";
 
@@ -63,6 +65,10 @@ class DatabaseLink {
     private static final String REMOVE_VOTE_URL = "https://stuxnet.byethost13.com/PU/remove_vote.php";
     private static final String LOGIN_URL = "https://stuxnet.byethost13.com/PU/test_login.php";
     private static final String GET_VOTED_ON_URL = "https://stuxnet.byethost13.com/PU/get_voted_on.php";
+    private static final String CREATE_USER_URL = "https://stuxnet.byethost13.com/PU/create_user.php";
+
+    private static SecurePreferences prefs;
+    static DatabaseLink instance = null;
 
     private final Activity activity;
     private X509TrustManager[] trustManagers;
@@ -70,12 +76,14 @@ class DatabaseLink {
 
     private String USERNAME;
     private String PASSWORD;
-    private boolean canAuthenticate;
 
     DatabaseLink(Activity parentActivity) {
-        this(parentActivity, false);
-    }
-    DatabaseLink(Activity parentActivity, boolean forceLogin) {
+        if (instance != null)
+            throw new IllegalStateException("Singleton pattern violated");
+
+        if (prefs == null)
+            throw new IllegalStateException("SecurePreferences must be initialized before creating DatabaseLink instances");
+
         activity = parentActivity;
         try {
             // Load CA certificate
@@ -85,7 +93,6 @@ class DatabaseLink {
             try (InputStream caInput =
                          new BufferedInputStream(parentActivity.getResources().openRawResource(R.raw.cert_intermediate_ca))) {
                 ca = cf.generateCertificate(caInput);
-                Log.v("TrafficTimeWaste", "CA=" + ((X509Certificate) ca).getSubjectDN());
             } catch (IOException e) {
                 throw new IOException("Failed to load CA certificate", e);
             }
@@ -108,26 +115,56 @@ class DatabaseLink {
             Log.e("TrafficTimeWaste", "Error instantiating DatabaseLink", e);
         }
 
+        // DEBUG: TEST PREFERENCES -> Working
+//        if (BuildConfig.DEBUG) {
+//            SharedPreferences testPrefs = parentActivity.getSharedPreferences("testPreferences", Context.MODE_PRIVATE);
+//            testPrefs.edit().putInt("testKey", 1).commit();
+//            testPrefs = parentActivity.getSharedPreferences("testPreferences", Context.MODE_PRIVATE);
+//            if (1 != testPrefs.getInt("testKey", 0)) {
+//                Log.e("SharedPreferences", "Preferences not working");
+//            } else
+//                Log.v("SharedPreferences", "Preferences working");
+//        }
+
+        // Read credentials
+        USERNAME = prefs.getString(KEY_USERNAME);
+        PASSWORD = prefs.getString(KEY_PASSWORD);
+        Log.v("SecurePreferences", "Loaded: username="+USERNAME+", password="+PASSWORD); // TODO leaks confidential data
+
+        if (USERNAME == null || PASSWORD == null) {
+            // Open dialog prompting login
+            AlertDialog dialog = new AlertDialog.Builder(parentActivity)
+                    .setMessage(R.string.login_prompt_message)
+                    .setTitle(R.string.login_prompt_title)
+                    .setPositiveButton(R.string.button_login, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // Open LoginActivity
+                            Intent intent = new Intent(activity, LoginActivity.class);
+                            activity.startActivity(intent);
+                        }
+                    })
+                    .setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // Cancel dialog
+                        }
+                    })
+                    .create();
+            dialog.show();
+        }
+
+        instance = this;
+    }
+
+    static void initPreferences(Activity activity) {
         try {
-            // Read credentials
-            SecurePreferences preferences = getPreferences(parentActivity);
-            USERNAME = preferences.getString(KEY_USERNAME);
-            PASSWORD = preferences.getString(KEY_PASSWORD);
-
-            if ((USERNAME == null || PASSWORD == null) && forceLogin) {
-                canAuthenticate = false;
-
-                // Open LoginActivity
-                Intent intent = new Intent(activity, LoginActivity.class);
-                intent.putExtra(LoginActivity.ARG_PREFS, (Serializable) preferences);
-                parentActivity.startActivity(intent);
-            } else
-                canAuthenticate = true;
+            StringBuilder key = new StringBuilder("MyTopSecretKey");
+            for (int i = 0; i < 43; i+=3)
+                key.append(key.charAt(i%key.length()));
+            prefs = new SecurePreferences(activity, key.toString());
         } catch (GeneralSecurityException e) {
-            Log.w("TrafficTimeWaste", "Could not instantiate SecurePreferences, authentication unavailable", e);
-            USERNAME = null;
-            PASSWORD = null;
-            canAuthenticate = false;
+            Log.e("DatabaseLink", "Could not initialize SecurePreferences", e);
         }
     }
 
@@ -137,48 +174,67 @@ class DatabaseLink {
     void getPostsWithTag(DatabaseListener databaseListener, String tag) {
         loadUrl(databaseListener, GET_WITH_TAG_URL, "tag_name=" + tag);
     }
-    void testAuthentication(DatabaseListener listener, String username, String password) {
-        if (!canAuthenticate)
-            listener.onGetResponse(LOGIN_FAILED_STR);
-        else
-            loadUrl(listener, LOGIN_URL, "username=" + username + "&password=" + password);
+    private void createUser(DatabaseListener listener, String username, String password) {
+        loadUrl(listener, CREATE_USER_URL, "username=" + username + "&password=" + password);
     }
-    private final SparseArray<String> syncedAccesses = new SparseArray<>();
-    String testAuthenticationSync(String username, String password) {
-        if (!canAuthenticate)
-            return LOGIN_FAILED_STR;
-
-        int syncedSize;
-        synchronized (syncedAccesses) {
-            syncedSize = syncedAccesses.size();
-            syncedAccesses.put(syncedSize, null);
-        }
-        final int id = syncedSize;
+    String createUserSync(String username, String password) {
+        final SparseArray<String> responseHolder = new SparseArray<>(1);
+        final int id = 0;
 
         DatabaseListener listener = new DatabaseListener() {
             @Override
             void onGetResponse(String json) {
-                syncedAccesses.put(id, json);
+                responseHolder.put(id, json);
             }
 
             @Override
             void onError(String errorMsg) {
-                syncedAccesses.put(id, errorMsg);
+                responseHolder.put(id, errorMsg);
+            }
+        };
+
+        createUser(listener, username, password);
+
+        String stored;
+        while ((stored = responseHolder.get(id)) == null) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Log.e("TrafficTimeWaste", "Error creating user", e);
+            }
+        }
+
+        return stored;
+    }
+    private void testAuthentication(DatabaseListener listener, String username, String password) {
+        loadUrl(listener, LOGIN_URL, "username=" + username + "&password=" + password);
+    }
+    String testAuthenticationSync(String username, String password) {
+        final SparseArray<String> responseHolder = new SparseArray<>(1);
+        final int id = 0;
+
+        DatabaseListener listener = new DatabaseListener() {
+            @Override
+            void onGetResponse(String json) {
+                responseHolder.put(id, json);
+            }
+
+            @Override
+            void onError(String errorMsg) {
+                responseHolder.put(id, errorMsg);
             }
         };
 
         testAuthentication(listener, username, password);
 
         String stored;
-        while ((stored = syncedAccesses.get(id)) == null) {
+        while ((stored = responseHolder.get(id)) == null) {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
                 Log.e("TrafficTimeWaste", "Error testing authentication", e);
             }
         }
-
-        syncedAccesses.put(id, null);
 
         return stored;
     }
@@ -192,21 +248,14 @@ class DatabaseLink {
         loadUrl(listener, GET_VOTED_ON_URL, "username=" + USERNAME + "&password=" + PASSWORD + "&post_id=" + postId);
     }
 
-    static void saveCredentials(Activity activity, String username, String password) {
-        try {
-            SecurePreferences prefs = getPreferences(activity);
-            prefs.put(KEY_USERNAME, username);
-            prefs.put(KEY_PASSWORD, password);
-        } catch (GeneralSecurityException e) {
-            Log.e("TrafficTimeWaste", "Unable to save credentials", e);
-        }
-    }
+    static void saveCredentials(String username, String password) {
+        prefs.put(KEY_USERNAME, username);
+        prefs.put(KEY_PASSWORD, password);
 
-    private static SecurePreferences getPreferences(Activity activity) throws GeneralSecurityException {
-        StringBuilder key = new StringBuilder("MyTopSecretKey");
-        for (int i = 0; i < 43; i+=3)
-            key.append(key.charAt(i%key.length()));
-        return new SecurePreferences(activity, key.toString());
+        instance.USERNAME = username;
+        instance.PASSWORD = password;
+
+        Log.v("SecurePreferences", "Saving: username="+username+", password="+password); // TODO leaks confidential data
     }
 
     private void loadUrl(
@@ -276,19 +325,14 @@ class DatabaseLink {
 
                 // load page
                 if (postData != null) {
-                    byte[] bytes;
-                    try {
-                        bytes = URLEncoder.encode(postData, StandardCharsets.UTF_8.name()).getBytes(StandardCharsets.UTF_8);
-                    } catch (UnsupportedEncodingException e) {
-                        bytes = postData.getBytes(StandardCharsets.UTF_8);
-                    }
-                    webView.postUrl(url, bytes);
+                    byte[] postDataBytes = postData.getBytes(StandardCharsets.UTF_8);
+                    webView.postUrl(url, postDataBytes);
                 } else {
                     webView.loadUrl(url);
                 }
 
                 lastWebView = webView;
-                Log.v("TrafficTimeWaste", "Request sent");
+                Log.v("TrafficTimeWaste", "Request sent, postData: " + postData); // TODO leaks confidential data
             }
         };
         activity.runOnUiThread(run);

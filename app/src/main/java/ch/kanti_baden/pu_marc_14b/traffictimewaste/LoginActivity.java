@@ -3,7 +3,6 @@ package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.support.v7.app.AppCompatActivity;
 
 import android.os.AsyncTask;
@@ -18,17 +17,14 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.regex.Pattern;
-
 public class LoginActivity extends AppCompatActivity {
 
-    public static final String ARG_PREFS = "login_preferences";
-
-    private UserLoginTask mAuthTask = null;
+    private AsyncTask<Void, Void, Boolean> mAuthTask = null;
 
     // UI references.
     private EditText mUsernameView;
@@ -49,18 +45,26 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
                 if (id == R.id.login || id == EditorInfo.IME_NULL) {
-                    attemptLogin();
+                    attemptLogin(false);
                     return true;
                 }
                 return false;
             }
         });
 
-        Button mSignInButton = (Button) findViewById(R.id.email_sign_in_button);
+        Button mSignInButton = (Button) findViewById(R.id.sign_in_button);
         mSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                attemptLogin();
+                attemptLogin(false);
+            }
+        });
+
+        Button mRegisterButton = (Button) findViewById(R.id.register_button);
+        mRegisterButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                attemptLogin(true);
             }
         });
 
@@ -74,7 +78,7 @@ public class LoginActivity extends AppCompatActivity {
      * If there are form errors (invalid email, missing fields, etc.), the
      * errors are presented and no actual login attempt is made.
      */
-    private void attemptLogin() {
+    private void attemptLogin(boolean isRegistration) {
         if (mAuthTask != null) {
             return;
         }
@@ -90,20 +94,13 @@ public class LoginActivity extends AppCompatActivity {
         boolean cancel = false;
         View focusView = null;
 
-        // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
-            mPasswordView.setError(getString(R.string.error_invalid_password));
-            focusView = mPasswordView;
-            cancel = true;
-        }
-
         // Check for a valid mUsername.
         if (TextUtils.isEmpty(username)) {
             mUsernameView.setError(getString(R.string.error_field_required));
             focusView = mUsernameView;
             cancel = true;
         } else if (!isUsernameValid(username)) {
-            mUsernameView.setError(getString(R.string.error_invalid_email));
+            mUsernameView.setError(getString(R.string.error_invalid_username));
             focusView = mUsernameView;
             cancel = true;
         }
@@ -116,22 +113,13 @@ public class LoginActivity extends AppCompatActivity {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask(username, password, this);
+            mAuthTask = isRegistration ? new UserRegistrationTask(username, password) : new UserLoginTask(username, password);
             mAuthTask.execute((Void) null);
         }
     }
 
     private boolean isUsernameValid(String username) {
         return username.length() >= 4 && username.length() <= 32;
-    }
-
-    private boolean isPasswordValid(String password) {
-        boolean containsLetter = Pattern.matches("/[a-zA-Z]/", password);
-        boolean containsDigit = Pattern.matches("/\\d/", password);
-        boolean containsSpecial = Pattern.matches("/[^a-zA-Z\\d]/", password);
-        boolean rightLength = password.length() >= 8 && password.length() <= 50;
-
-        return containsDigit && containsLetter && containsSpecial && rightLength;
     }
 
     /**
@@ -171,32 +159,30 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     /**
-     * Represents an asynchronous login/registration task used to authenticate
+     * Represents an asynchronous login task used to authenticate
      * the user.
      */
     public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
 
         private final String mUsername;
         private final String mPassword;
-        private final DatabaseLink link;
 
-        UserLoginTask(String email, String password, Activity activity) {
+        UserLoginTask(String email, String password) {
             mUsername = email;
             mPassword = password;
-            link = new DatabaseLink(activity);
         }
 
         @Override
         protected Boolean doInBackground(Void... params) {
             // Test credentials with server
-            String response = link.testAuthenticationSync(mUsername, mPassword);
+            String response = DatabaseLink.instance.testAuthenticationSync(mUsername, mPassword);
 
             try {
                 JSONObject json = new JSONObject(response);
                 boolean success = json.getInt(DatabaseLink.JSON_SUCCESS) == 1;
 
                 if (success)
-                    DatabaseLink.saveCredentials(link.getActivity(), mUsername, mPassword);
+                    DatabaseLink.saveCredentials(mUsername, mPassword);
 
                 return success;
             } catch (JSONException e) {
@@ -213,6 +199,65 @@ public class LoginActivity extends AppCompatActivity {
                 finish();
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
+                mPasswordView.requestFocus();
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            mAuthTask = null;
+            showProgress(false);
+        }
+    }
+
+    /**
+     * Represents an asynchronous registration task used to authenticate
+     * the user.
+     */
+    public class UserRegistrationTask extends AsyncTask<Void, Void, Boolean> {
+
+        private final String mUsername;
+        private final String mPassword;
+
+        private String message = null;
+
+        UserRegistrationTask(String email, String password) {
+            mUsername = email;
+            mPassword = password;
+        }
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            // Test credentials with server
+            String response = DatabaseLink.instance.createUserSync(mUsername, mPassword);
+
+            try {
+                JSONObject json = new JSONObject(response);
+                boolean success = json.getInt(DatabaseLink.JSON_SUCCESS) == 1;
+
+                if (success) {
+                    DatabaseLink.saveCredentials(mUsername, mPassword);
+                    message = json.getString(DatabaseLink.JSON_MESSAGE);
+                } else {
+                    message = json.getString(DatabaseLink.JSON_MESSAGE);
+                }
+
+                return success;
+            } catch (JSONException e) {
+                return Boolean.FALSE;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mAuthTask = null;
+            showProgress(false);
+
+            if (success) {
+                Toast.makeText(DatabaseLink.instance.getActivity(), message, Toast.LENGTH_SHORT).show();
+                finish();
+            } else {
+                mPasswordView.setError(message);
                 mPasswordView.requestFocus();
             }
         }

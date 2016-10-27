@@ -41,7 +41,18 @@ public class TipView extends LinearLayout {
         addView(textView);
 
         insertImages(text);
-        insertButtons(text);
+        for (int i = 0; i < getChildCount(); i++) {
+            if (getChildAt(i) instanceof TextView)
+                insertButtons(((TextView) getChildAt(i)).getText().toString(), i);
+        }
+
+        boolean foundButton = false;
+        for (int i = 0; i < getChildCount(); i++) {
+            getChildAt(i).setVisibility(foundButton ? View.GONE : View.VISIBLE);
+
+            if (!foundButton)
+                foundButton = getChildAt(i) instanceof Button;
+        }
     }
 
     private void insertImages(String content) { // [BILD http://...]
@@ -49,7 +60,7 @@ public class TipView extends LinearLayout {
             return;
 
         int startIndex = content.indexOf(IMAGE_TRIGGER); // just before trigger
-        int endIndex = content.indexOf(']', startIndex); // just before ]
+        int endIndex = content.indexOf("]", startIndex); // just before ]
 
         // Extract link URL
         String url = content.substring(startIndex + IMAGE_TRIGGER.length(), endIndex).replaceAll(" ", "");
@@ -58,7 +69,6 @@ public class TipView extends LinearLayout {
         final ImageView imageView = new ImageView(getContext());
         imageView.setLayoutParams(LAYOUT_PARAMS);
         imageView.setImageDrawable(getResources().getDrawable(R.drawable.ic_loading, getContext().getTheme()));
-        addView(imageView);
 
         // Create and start AsyncTask to load the referenced image
         AsyncTask<String, Void, Bitmap> imageLoadingTask = new AsyncTask<String, Void, Bitmap>() {
@@ -106,7 +116,7 @@ public class TipView extends LinearLayout {
         insertImages(followingText);
     }
 
-    private void insertButtons(String content) { // [SPOILER]
+    private void insertButtons(String content, int childPosition) { // [SPOILER]
         if (!content.contains(BUTTON_TRIGGER))
             return;
 
@@ -119,26 +129,24 @@ public class TipView extends LinearLayout {
         Button button = new Button(getContext());
         button.setLayoutParams(LAYOUT_PARAMS);
         button.setText(R.string.spoiler_text);
-        addView(button);
 
         // Update children
-        if (getChildCount() > 0 && getChildAt(getChildCount()-1) instanceof TextView) {
-            TextView textView = (TextView) getChildAt(getChildCount() - 1);
-            textView.setText(precedingText);
+        TextView textView = (TextView) getChildAt(childPosition);
+        textView.setText(precedingText);
+
+        final int buttonIndex = childPosition + 1;
+        addView(button, buttonIndex);
+
+        if (getChildCount() > childPosition + 1 && getChildAt(childPosition + 2) instanceof TextView) {
+            TextView textView2 = (TextView) getChildAt(childPosition + 2);
+            String newText = followingText + textView2.getText();
+            textView2.setText(newText);
         } else {
-            TextView textView = new TextView(getContext());
-            textView.setLayoutParams(LAYOUT_PARAMS);
-            textView.setText(precedingText);
-            addView(textView);
+            TextView textView2 = new TextView(getContext());
+            textView2.setLayoutParams(LAYOUT_PARAMS);
+            textView2.setText(followingText);
+            addView(textView2, childPosition + 2);
         }
-
-        final int buttonIndex = getChildCount();
-        addView(button);
-
-        TextView textView = new TextView(getContext());
-        textView.setLayoutParams(LAYOUT_PARAMS);
-        textView.setText(followingText);
-        addView(textView);
 
         // Setup OnClickListener
         button.setOnClickListener(new OnClickListener() {
@@ -159,6 +167,6 @@ public class TipView extends LinearLayout {
         });
 
         // Recursively call insertButtons
-        insertButtons(followingText);
+        insertButtons(followingText, childPosition + 2);
     }
 }

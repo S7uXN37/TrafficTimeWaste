@@ -9,19 +9,10 @@
     tools:context=".TipBrowserActivity$TipFragment">
 
     <TextView
-        android:id="@+id/detailContent"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="This is a default content."
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true"
-        tools:ignore="HardcodedText" />
-
-    <TextView
         android:id="@+id/date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="2016-09-14 09:51:32"
+        android:text="1970-01-01 00:04:20"
         android:layout_alignTop="@+id/ownerName"
         android:layout_alignParentEnd="true"
         tools:ignore="HardcodedText" />
@@ -39,8 +30,15 @@
         xmlns:chipcloud="http://schemas.android.com/apk/res-auto"
         android:id="@+id/tagView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        chipcloud:selectMode="required"/>
+        chipcloud:selectMode="required"
+        android:layout_height="wrap_content" />
 
+    <ch.kanti_baden.pu_marc_14b.traffictimewaste.TipView
+        android:id="@+id/detailContent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/tagView"
+        android:layout_centerHorizontal="true"
+        android:orientation="vertical" />
 
 </RelativeLayout>

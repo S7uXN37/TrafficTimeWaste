@@ -1,6 +1,5 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
-import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
@@ -8,8 +7,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
@@ -30,7 +29,6 @@ import org.json.JSONObject;
 
 import java.util.Arrays;
 import java.util.Comparator;
-
 
 enum SORT_TYPE {
     NEWEST, OLDEST, UPVOTES, DOWNVOTES
@@ -75,7 +73,16 @@ public class PostListActivity extends AppCompatActivity {
 
         // Get the SearchView and set the searchable configuration
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+        final SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                searchView.setTranslationX(500f);
+                searchView.setAlpha(0f);
+                searchView.animate().translationX(0);
+                searchView.animate().alpha(1f);
+            }
+        });
         // Assumes current activity is the searchable activity
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
 
@@ -87,8 +94,7 @@ public class PostListActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.action_sort:
                 // Create AlertDialog with radio buttons to select ordering
-                final Activity activity = this;
-                AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 // Add options
                 SORT_TYPE[] values = SORT_TYPE.values();
                 String[] options = new String[values.length];
@@ -99,7 +105,7 @@ public class PostListActivity extends AppCompatActivity {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 sortType = which;
-                                activity.recreate();
+                                PostListActivity.this.recreate();
                             }
                         });
                 // Display dialog
@@ -115,7 +121,6 @@ public class PostListActivity extends AppCompatActivity {
         final ProgressDialog progressDialog = ProgressDialog.show(this, "Loading posts...", "Please wait", true, false);
         progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
 
-        final Context context = this;
         DatabaseLink.DatabaseListener listener = new DatabaseLink.DatabaseListener() {
             @Override
             void onGetResponse(String str) {
@@ -137,16 +142,24 @@ public class PostListActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         // Inflate layout post_list
-                        RecyclerView recyclerView =
-                                (RecyclerView) View.inflate(context, R.layout.post_list, null)
-                                        .findViewById(R.id.post_list);
-                        assert recyclerView != null;
+                        View rootView = View.inflate(PostListActivity.this, R.layout.post_list, null);
+                        RecyclerView recyclerView = (RecyclerView) rootView.findViewById(R.id.post_list);
+
+                        // Setup refresh action
+                        SwipeRefreshLayout swipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_refresh);
+                        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+                            @Override
+                            public void onRefresh() {
+                                finish();
+                                startActivity(new Intent(PostListActivity.this, PostListActivity.class));
+                            }
+                        });
 
                         // Set adapter with posts
                         recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(sortedPosts));
 
                         // Add to ViewGroup
-                        viewGroup.addView(recyclerView);
+                        viewGroup.addView(rootView);
                     }
                 });
             }
@@ -194,7 +207,7 @@ public class PostListActivity extends AppCompatActivity {
                 comparator = new Comparator<Post>() {
                     @Override
                     public int compare(Post post, Post t1) {
-                        return Integer.compare(t1.votesUp, post.votesUp);
+                        return Integer.compare(t1.votesUp-t1.votesDown, post.votesUp-post.votesDown);
                     }
                 };
                 break;
@@ -202,7 +215,7 @@ public class PostListActivity extends AppCompatActivity {
                 comparator = new Comparator<Post>() {
                     @Override
                     public int compare(Post post, Post t1) {
-                        return Integer.compare(t1.votesDown, post.votesDown);
+                        return Integer.compare(t1.votesDown-t1.votesUp, post.votesDown-post.votesUp);
                     }
                 };
                 break;

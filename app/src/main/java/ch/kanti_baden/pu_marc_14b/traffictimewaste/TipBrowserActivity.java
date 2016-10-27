@@ -1,6 +1,8 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
+import android.app.SearchManager;
 import android.content.Context;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 
 import android.support.v4.app.Fragment;
@@ -23,8 +25,10 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import eu.fiskur.chipcloud.Chip;
+import java.util.concurrent.atomic.AtomicLong;
+
 import eu.fiskur.chipcloud.ChipCloud;
+import eu.fiskur.chipcloud.ChipListener;
 
 public class TipBrowserActivity extends AppCompatActivity {
 
@@ -70,6 +74,13 @@ public class TipBrowserActivity extends AppCompatActivity {
             @Override
             public void onPageSelected(int position) {
                 updateThumbColors();
+
+                SectionsPagerAdapter adapter = (SectionsPagerAdapter) viewPager.getAdapter();
+                TipFragment fragment = adapter.children[viewPager.getCurrentItem()];
+                if (!fragment.receivedVotedOn && fragment.getRequestDuration() > 5000) {
+                    fragment.cancelRequest();
+                    fragment.updateVotes();
+                }
             }
         });
     }
@@ -81,7 +92,8 @@ public class TipBrowserActivity extends AppCompatActivity {
                 SectionsPagerAdapter adapter = (SectionsPagerAdapter) viewPager.getAdapter();
                 TipFragment fragment = adapter.children[viewPager.getCurrentItem()];
 
-                Log.v("TrafficTimeWaste", "Updating thumb colors: voteUp=" + fragment.votedUp + " voteDown=" + fragment.votedDown);
+                if (fragment == null)
+                    return;
 
                 // Change menu icons
                 if (fragment.receivedVotedOn) {
@@ -131,31 +143,30 @@ public class TipBrowserActivity extends AppCompatActivity {
     }
 
     void submitVote(boolean removeVote, int postId, boolean voteUp) {
-        final Context context = this;
         if (!removeVote) {
             DatabaseLink.instance.voteOnPost(new DatabaseLink.DatabaseListener() {
                 @Override
                 void onGetResponse(String message) {
-                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(TipBrowserActivity.this, message, Toast.LENGTH_SHORT).show();
                     causeFragmentUpdate();
                 }
 
                 @Override
                 void onError(String errorMsg) {
-                    Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(TipBrowserActivity.this, "Error", Toast.LENGTH_SHORT).show();
                 }
             }, postId, voteUp);
         } else {
             DatabaseLink.instance.removeVote(new DatabaseLink.DatabaseListener() {
                 @Override
                 void onGetResponse(String message) {
-                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(TipBrowserActivity.this, message, Toast.LENGTH_SHORT).show();
                     causeFragmentUpdate();
                 }
 
                 @Override
                 void onError(String errorMsg) {
-                    Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(TipBrowserActivity.this, "Error", Toast.LENGTH_SHORT).show();
                 }
             }, postId);
         }
@@ -207,8 +218,9 @@ public class TipBrowserActivity extends AppCompatActivity {
 
             // update fields
             // content
-            ((TextView) rootView.findViewById(R.id.detailContent))
-                    .setText(post.content);
+            // FIXME: 10/27/2016
+            ((TipView) rootView.findViewById(R.id.detailContent))
+                    .setContent(post.content);
 
             // date
             ((TextView) rootView.findViewById(R.id.date))
@@ -219,8 +231,23 @@ public class TipBrowserActivity extends AppCompatActivity {
                     .setText(post.ownerName);
 
             // tags
-            ChipCloud chips = (ChipCloud) rootView.findViewById(R.id.tagView);
+            final ChipCloud chips = (ChipCloud) rootView.findViewById(R.id.tagView);
             chips.addChips(post.tags);
+            chips.setChipListener(new ChipListener() {
+                @Override
+                public void chipSelected(int i) {
+                    // Go back to PostList, act as if the user searched for the tag
+                    Intent intent = new Intent(getActivity(), PostListActivity.class);
+                    intent.setAction(Intent.ACTION_SEARCH);
+                    intent.putExtra(SearchManager.QUERY, post.tags[i]);
+                    startActivity(intent);
+                }
+
+                @Override
+                public void chipDeselected(int i) {
+                    // Do nothing.
+                }
+            });
 
             // Look up votedOn
             updateVotes();
@@ -228,11 +255,29 @@ public class TipBrowserActivity extends AppCompatActivity {
             return rootView;
         }
 
+        private AtomicLong idCounter = new AtomicLong();
+        private long openRequestID = -1L;
+        private long requestStartMillis = Long.MIN_VALUE;
         void updateVotes() {
             receivedVotedOn = false;
+
+            // Create ID that is not -1L (represents NULL)
+            long tmpId = -1L;
+            while (tmpId == -1L)
+                tmpId = idCounter.getAndIncrement();
+            final long id = tmpId;
+
+            // Save request id and start time
+            openRequestID = id;
+            requestStartMillis = System.currentTimeMillis();
+
+            // Send request
             DatabaseLink.instance.getVotedOnPost(new DatabaseLink.DatabaseListener() {
                 @Override
                 void onGetResponse(String json) {
+                    if (openRequestID != id)
+                        return;
+
                     try {
                         JSONObject response = new JSONObject(json);
                         boolean vote_exists = response.getInt(DatabaseLink.JSON_VOTE_EXISTS) == 1;
@@ -258,10 +303,21 @@ public class TipBrowserActivity extends AppCompatActivity {
 
                 @Override
                 void onError(String errorMsg) {
+                    if (openRequestID != id)
+                        return;
+
                     receivedVotedOn = false;
                     Log.e("TrafficTimeWaste", "Error getting votedOn: " + errorMsg);
                 }
             }, post.id);
+        }
+
+        void cancelRequest() {
+            openRequestID = -1L;
+        }
+
+        long getRequestDuration() {
+            return System.currentTimeMillis() - requestStartMillis;
         }
     }
 

@@ -27,4 +27,7 @@
     <string name="button_login">To login</string>
     <string name="button_cancel">Cancel</string>
 
+    <!-- Strings related to TipFragment -->
+    <string name="spoiler_text">Continue</string>
+
 </resources>

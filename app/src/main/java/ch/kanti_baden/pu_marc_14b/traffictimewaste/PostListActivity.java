@@ -44,6 +44,7 @@ enum SORT_TYPE {
 public class PostListActivity extends AppCompatActivity {
 
     private static int sortType = 0;
+    private static boolean warningDisplayed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +65,19 @@ public class PostListActivity extends AppCompatActivity {
         }
 
         setupRecyclerViewAsync((FrameLayout) findViewById(R.id.frameLayout));
+        if (!warningDisplayed) {
+            final AlertDialog warning = new AlertDialog.Builder(this)
+                    .setMessage(R.string.warning_message)
+                    .setPositiveButton(R.string.warning_acknowledge, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    })
+                    .create();
+            warning.show();
+            warningDisplayed = true;
+        }
     }
 
     @Override
@@ -277,7 +291,16 @@ public class PostListActivity extends AppCompatActivity {
             void update(Post item, final int listIndex) {
                 String id = ""+(item.votesUp-item.votesDown);
                 voteView.setText(id);
-                contentView.setText(item.content);
+
+                String contentPreview = item.content;
+                if (contentPreview.contains(TipView.TITLE_TRIGGER)) {
+                    int startIndex = contentPreview.indexOf(TipView.TITLE_TRIGGER) + TipView.TITLE_TRIGGER.length();
+                    contentPreview = contentPreview.substring(startIndex, contentPreview.indexOf("]", startIndex));
+                }
+                if (contentPreview.contains("["))
+                    contentPreview = contentPreview.substring(0, contentPreview.indexOf("["));
+
+                contentView.setText(contentPreview);
                 postedAtView.setText(item.postedAt);
 
                 if (item.clickable) {

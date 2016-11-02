@@ -27,7 +27,11 @@
     <string name="button_login">To login</string>
     <string name="button_cancel">Cancel</string>
 
-    <!-- Strings related to TipFragment -->
+    <!-- Strings related to TipView -->
     <string name="spoiler_text">Continue</string>
+
+    <!-- Strings related to the app in general -->
+    <string name="warning_message">Please use this app responsibly and stay aware of your surroundings at all times.</string>
+    <string name="warning_acknowledge">I\'ll be careful, I promise</string>
 
 </resources>

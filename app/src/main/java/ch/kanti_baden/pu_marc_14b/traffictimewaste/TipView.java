@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,7 +18,7 @@ import java.io.IOException;
 import java.net.URL;
 
 public class TipView extends LinearLayout {
-
+    // Constructors inherited from LinearLayout
     public TipView(Context context) {
         super(context);
     }
@@ -33,8 +34,21 @@ public class TipView extends LinearLayout {
 
     private static final String BUTTON_TRIGGER = "[SPOILER]";
     private static final String IMAGE_TRIGGER = "[BILD";
-    private static final ViewGroup.LayoutParams LAYOUT_PARAMS = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    public static final String TITLE_TRIGGER = "[TITEL:";
+    private static final ViewGroup.LayoutParams LAYOUT_PARAMS;
+
+    static {
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        layoutParams.setMargins(0, 0, 0, 50);
+        LAYOUT_PARAMS = layoutParams;
+    }
+
     void setContent(String text) {
+        text = removeTitle(text);
+
         TextView textView = new TextView(getContext());
         textView.setLayoutParams(LAYOUT_PARAMS);
         textView.setText(text);
@@ -53,6 +67,15 @@ public class TipView extends LinearLayout {
             if (!foundButton)
                 foundButton = getChildAt(i) instanceof Button;
         }
+    }
+
+    private static String removeTitle(String text) {
+        if (text.contains(TITLE_TRIGGER)) {
+            int triggerIndex = text.indexOf(TITLE_TRIGGER);
+            text = text.substring(0, triggerIndex)
+                    + text.substring(text.indexOf("]", triggerIndex) + 1);
+        }
+        return text;
     }
 
     private void insertImages(String content) { // [BILD http://...]

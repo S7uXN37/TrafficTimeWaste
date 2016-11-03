@@ -1,7 +1,6 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
 import android.app.SearchManager;
-import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 
@@ -142,7 +141,7 @@ public class TipBrowserActivity extends AppCompatActivity {
         }
     }
 
-    void submitVote(boolean removeVote, int postId, boolean voteUp) {
+    private void submitVote(boolean removeVote, int postId, boolean voteUp) {
         if (!removeVote) {
             DatabaseLink.instance.voteOnPost(new DatabaseLink.DatabaseListener() {
                 @Override
@@ -172,7 +171,7 @@ public class TipBrowserActivity extends AppCompatActivity {
         }
     }
 
-    void causeFragmentUpdate() {
+    private void causeFragmentUpdate() {
         SectionsPagerAdapter adapter = (SectionsPagerAdapter) viewPager.getAdapter();
         TipFragment fragment = adapter.children[viewPager.getCurrentItem()];
         fragment.updateVotes();
@@ -255,7 +254,7 @@ public class TipBrowserActivity extends AppCompatActivity {
             return rootView;
         }
 
-        private AtomicLong idCounter = new AtomicLong();
+        private final AtomicLong idCounter = new AtomicLong();
         private long openRequestID = -1L;
         private long requestStartMillis = Long.MIN_VALUE;
         void updateVotes() {
@@ -328,7 +327,7 @@ public class TipBrowserActivity extends AppCompatActivity {
     public static class SectionsPagerAdapter extends FragmentPagerAdapter {
 
         private final Post[] posts;
-        TipFragment[] children;
+        final TipFragment[] children;
 
         SectionsPagerAdapter(FragmentManager fm, Post[] data) {
             super(fm);

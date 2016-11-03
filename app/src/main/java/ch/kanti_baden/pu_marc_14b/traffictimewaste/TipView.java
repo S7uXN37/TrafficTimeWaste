@@ -83,7 +83,7 @@ public class TipView extends LinearLayout {
             return;
 
         int startIndex = content.indexOf(IMAGE_TRIGGER); // just before trigger
-        int endIndex = content.indexOf("]", startIndex); // just before ]
+        int endIndex = content.indexOf(']', startIndex); // just before ]
 
         // Extract link URL
         String url = content.substring(startIndex + IMAGE_TRIGGER.length(), endIndex).replaceAll(" ", "");

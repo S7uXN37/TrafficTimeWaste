@@ -103,7 +103,7 @@ class SecurePreferences {
 
     void put(String key, String value) {
         if (value == null) {
-            preferences.edit().remove(toKey(key)).commit();
+            preferences.edit().remove(toKey(key)).apply();
         }
         else {
             putValue(toKey(key), value);
@@ -119,7 +119,7 @@ class SecurePreferences {
     }
 
     public void clear() {
-        preferences.edit().clear().commit();
+        preferences.edit().clear().apply();
     }
 
     private String toKey(String key) {
@@ -132,7 +132,7 @@ class SecurePreferences {
     private void putValue(String key, String value) {
         String secureValueEncoded = encrypt(value, writer);
 
-        preferences.edit().putString(key, secureValueEncoded).commit();
+        preferences.edit().putString(key, secureValueEncoded).apply();
     }
 
     private String encrypt(String value, Cipher writer) {

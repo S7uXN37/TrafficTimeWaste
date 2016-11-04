@@ -136,6 +136,10 @@ public class TipBrowserActivity extends AppCompatActivity {
                 if (fragment.receivedVotedOn)
                     submitVote(fragment.votedDown, postId, false);
                 return true;
+            case R.id.action_login:
+                Intent intent = new Intent(this, LoginActivity.class);
+                startActivity(intent);
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -217,7 +221,6 @@ public class TipBrowserActivity extends AppCompatActivity {
 
             // update fields
             // content
-            // FIXME: 10/27/2016
             ((TipView) rootView.findViewById(R.id.detailContent))
                     .setContent(post.content);
 

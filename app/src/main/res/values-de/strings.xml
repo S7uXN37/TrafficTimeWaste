@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_login">Einloggen</string>
+    <string name="action_register">Registrieren</string>
+    <string name="action_search">Suchen</string>
+    <string name="action_sign_in">Anmelden</string>
+    <string name="action_sort">Sortieren</string>
+    <string name="action_vote_down">Daumen runter</string>
+    <string name="action_vote_up">Daumen hoch</string>
+    <string name="button_login">Zum Login</string>
+    <string name="error_field_required">Dieses Feld ist obligatorisch</string>
+    <string name="error_incorrect_password">Das Passwort ist inkorrekt</string>
+    <string name="error_invalid_username">Der Benutzername ist ungültig</string>
+    <string name="login_prompt_message">Du bist im Moment nicht angemeldet. Ohne dich anzumelden kannst du nicht neue Posts erstellen oder existierende bewerten.</string>
+    <string name="login_prompt_title">Anmelden?</string>
+    <string name="prompt_password">Passwort</string>
+    <string name="prompt_username">Benutzername</string>
+    <string name="search_hint">Posts durchsuchen</string>
+    <string name="select_sorting">Sortieren nach</string>
+    <string name="spoiler_text">Weiter</string>
+    <string name="title_activity_login">Login</string>
+    <string name="warning_acknowledge">Ich werde vorsichtig sein, versprochen</string>
+    <string name="warning_message">Bitte benutz diese App verantwortungsvoll und behalte deine Umgebung im Blick. Wir sind nicht für Unfälle jeglicher Art verantwortlich, die aus der Benutzung dieser App folgen.</string>
+    <string name="button_cancel">Abbrechen</string>
+</resources>

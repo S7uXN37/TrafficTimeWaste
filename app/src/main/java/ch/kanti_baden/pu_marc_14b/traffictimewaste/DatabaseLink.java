@@ -126,7 +126,7 @@ class DatabaseLink {
         // Read credentials
         USERNAME = prefs.getString(KEY_USERNAME);
         PASSWORD = prefs.getString(KEY_PASSWORD);
-        Log.v("SecurePreferences", "Loaded: username="+USERNAME+", password="+PASSWORD); // TODO leaks confidential data
+        Log.v("SecurePreferences", "Loaded: username="+USERNAME+", password="+PASSWORD.replaceAll(".", "X")); // TODO leaks confidential data
 
         if (USERNAME == null || PASSWORD == null) {
             // Open dialog prompting login
@@ -252,7 +252,7 @@ class DatabaseLink {
         instance.USERNAME = username;
         instance.PASSWORD = password;
 
-        Log.v("SecurePreferences", "Saving: username="+username+", password="+password); // TODO leaks confidential data
+        Log.v("SecurePreferences", "Saving: username="+username+", password=" + password.replaceAll(".", "X")); // TODO leaks confidential data
     }
 
     private void loadUrl(
@@ -329,7 +329,7 @@ class DatabaseLink {
                 }
 
                 lastWebView = webView;
-                Log.v("TrafficTimeWaste", "Request sent, postData: " + postData); // TODO leaks confidential data
+                Log.v("TrafficTimeWaste", "Request sent...");
             }
         };
         activity.runOnUiThread(run);

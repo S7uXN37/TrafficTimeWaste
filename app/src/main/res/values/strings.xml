@@ -1,9 +1,10 @@
 <resources>
-    <string name="app_name">TrafficTimeWaste</string>
+    <string name="app_name" translatable="false">TrafficTimeWaste</string>
 
     <!-- Strings related to ActionButtons -->
     <string name="action_sort">Sort</string>
     <string name="action_search">Search</string>
+    <string name="action_login">Log in</string>
     <string name="action_vote_up">Thumbs up</string>
     <string name="action_vote_down">Thumbs down</string>
     <string name="select_sorting">Sort by</string>
@@ -15,7 +16,6 @@
     <string name="prompt_password">Password</string>
     <string name="action_sign_in">Sign in</string>
     <string name="action_register">Register</string>
-    <string name="action_sign_in_short">Sign in</string>
     <string name="error_invalid_username">This username is invalid</string>
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
@@ -30,7 +30,7 @@
     <string name="spoiler_text">Continue</string>
 
     <!-- Strings related to the app in general -->
-    <string name="warning_message">Please use this app responsibly and stay aware of your surroundings at all times.</string>
+    <string name="warning_message">Please use this app responsibly and stay aware of your surroundings at all times. We are not responsible for any kind of accident arising from the use of this app.</string>
     <string name="warning_acknowledge">I\'ll be careful, I promise</string>
 
 </resources>

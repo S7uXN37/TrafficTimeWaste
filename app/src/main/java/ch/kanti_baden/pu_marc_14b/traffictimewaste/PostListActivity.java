@@ -126,6 +126,10 @@ public class PostListActivity extends AppCompatActivity {
                 AlertDialog dialog = builder.create();
                 dialog.show();
                 return true;
+            case R.id.action_login:
+                Intent intent = new Intent(this, LoginActivity.class);
+                startActivity(intent);
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }

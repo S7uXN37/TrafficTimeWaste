@@ -6,6 +6,7 @@ import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -129,6 +130,10 @@ public class PostListActivity extends AppCompatActivity {
             case R.id.action_login:
                 Intent intent = new Intent(this, LoginActivity.class);
                 startActivity(intent);
+                return true;
+            case R.id.action_create:
+                Intent intent1 = new Intent(this, TipCreateActivity.class);
+                startActivity(intent1);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -317,7 +322,11 @@ public class PostListActivity extends AppCompatActivity {
                             intent.putExtra(TipBrowserActivity.ARG_POSTS, posts);
 
                             // Start TipBrowser with transitions
-                            context.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(PostListActivity.this).toBundle());
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                context.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(PostListActivity.this).toBundle());
+                            } else {
+                                context.startActivity(intent);
+                            }
                         }
                     });
                 }

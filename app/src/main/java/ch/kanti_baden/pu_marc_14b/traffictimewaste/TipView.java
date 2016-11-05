@@ -4,8 +4,9 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,8 +29,9 @@ public class TipView extends LinearLayout {
     public TipView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
     }
+    @RequiresApi(21)
     public TipView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
+            super(context, attrs, defStyleAttr, defStyleRes);
     }
 
     private static final String BUTTON_TRIGGER = "[SPOILER]";
@@ -91,7 +93,12 @@ public class TipView extends LinearLayout {
         // Create and display ImageView with loading screen
         final ImageView imageView = new ImageView(getContext());
         imageView.setLayoutParams(LAYOUT_PARAMS);
-        imageView.setImageDrawable(getResources().getDrawable(R.drawable.ic_loading, getContext().getTheme()));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            imageView.setImageDrawable(getResources().getDrawable(R.drawable.ic_loading, getContext().getTheme()));
+        } else {
+            //noinspection deprecation
+            imageView.setImageDrawable(getResources().getDrawable(R.drawable.ic_loading));
+        }
 
         // Create and start AsyncTask to load the referenced image
         AsyncTask<String, Void, Bitmap> imageLoadingTask = new AsyncTask<String, Void, Bitmap>() {

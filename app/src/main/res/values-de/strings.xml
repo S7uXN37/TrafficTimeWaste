@@ -22,4 +22,6 @@
     <string name="warning_acknowledge">Ich werde vorsichtig sein, versprochen</string>
     <string name="warning_message">Bitte benutz diese App verantwortungsvoll und behalte deine Umgebung im Blick. Wir sind nicht für Unfälle jeglicher Art verantwortlich, die aus der Benutzung dieser App folgen.</string>
     <string name="button_cancel">Abbrechen</string>
+    <string name="action_create">Post erstellen</string>
+    <string name="action_submit">Erstellen</string>
 </resources>

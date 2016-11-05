@@ -86,7 +86,11 @@ class SecurePreferences {
 
     private IvParameterSpec getIv() {
         byte[] iv = new byte[writer.getBlockSize()];
-        System.arraycopy("fzjJM odasii_JUslfjvsaofSG5ufihAS/f".getBytes(StandardCharsets.UTF_8), 0, iv, 0, writer.getBlockSize());
+
+        String ivStr = "fzjJM odasii_JUslfjvsaofSG5ufihAS/f";
+        byte[] bytes = ivStr.getBytes(StandardCharsets.UTF_8);
+
+        System.arraycopy(bytes, 0, iv, 0, writer.getBlockSize());
         return new IvParameterSpec(iv);
     }
 
@@ -116,10 +120,6 @@ class SecurePreferences {
             return decrypt(securedEncodedValue);
         } else
             return null;
-    }
-
-    public void clear() {
-        preferences.edit().clear().apply();
     }
 
     private String toKey(String key) {

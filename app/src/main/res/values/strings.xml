@@ -32,5 +32,7 @@
     <!-- Strings related to the app in general -->
     <string name="warning_message">Please use this app responsibly and stay aware of your surroundings at all times. We are not responsible for any kind of accident arising from the use of this app.</string>
     <string name="warning_acknowledge">I\'ll be careful, I promise</string>
+    <string name="action_create">Create post</string>
+    <string name="action_submit">Submit</string>
 
 </resources>

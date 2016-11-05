@@ -7,7 +7,7 @@ android {
 
     defaultConfig {
         applicationId "ch.kanti_baden.pu_marc_14b.traffictimewaste"
-        minSdkVersion 21
+        minSdkVersion 19
         targetSdkVersion 24
         versionCode 1
         versionName "1.0"

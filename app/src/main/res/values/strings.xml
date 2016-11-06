@@ -11,19 +11,17 @@
     <string name="search_hint">Search posts</string>
 
     <!-- Strings related to login -->
-    <string name="title_activity_login">Sign in</string>
+    <string name="title_activity_login">Login</string>
     <string name="prompt_username">Username</string>
     <string name="prompt_password">Password</string>
-    <string name="action_sign_in">Sign in</string>
     <string name="action_register">Register</string>
-    <string name="error_invalid_username">This username is invalid</string>
-    <string name="error_incorrect_password">This password is incorrect</string>
+    <string name="error_invalid_username">The username must be between 4 and 32 characters long</string>
+    <string name="error_incorrect_password">Authentication failed</string>
     <string name="error_field_required">This field is required</string>
 
     <!-- Strings related to the login prompt -->
     <string name="login_prompt_message">You\'re currently not logged in. Without logging in you won\'t be able to create posts or vote on existing posts.</string>
     <string name="login_prompt_title">Log in?</string>
-    <string name="button_login">To login</string>
     <string name="button_cancel">Cancel</string>
 
     <!-- Strings related to TipView -->
@@ -32,7 +30,20 @@
     <!-- Strings related to the app in general -->
     <string name="warning_message">Please use this app responsibly and stay aware of your surroundings at all times. We are not responsible for any kind of accident arising from the use of this app.</string>
     <string name="warning_acknowledge">I\'ll be careful, I promise</string>
+
+    <!-- Strings related to TipCreateActivity-->
     <string name="action_create">Create post</string>
     <string name="action_submit">Submit</string>
+    <string name="title_activity_tip_create">Create tip</string>
+    <string name="tags_hint">Tags</string>
+    <string name="content_hint">Content</string>
+    <string name="okay">OK</string>
+    <string name="progress_loading_posts">Loading posts…</string>
+    <string name="progress_please_wait">Please wait</string>
+    <string name="progress_submitting">Submitting…</string>
+    <string name="action_delete">Delete</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="confirmation">Are you sure?</string>
 
 </resources>

@@ -99,7 +99,7 @@ public class LoginActivity extends AppCompatActivity {
             mUsernameView.setError(getString(R.string.error_field_required));
             focusView = mUsernameView;
             cancel = true;
-        } else if (!isUsernameValid(username)) {
+        } else if (username.length() < 4 || username.length() > 32) {
             mUsernameView.setError(getString(R.string.error_invalid_username));
             focusView = mUsernameView;
             cancel = true;
@@ -116,10 +116,6 @@ public class LoginActivity extends AppCompatActivity {
             mAuthTask = isRegistration ? new UserRegistrationTask(username, password) : new UserLoginTask(username, password);
             mAuthTask.execute((Void) null);
         }
-    }
-
-    private boolean isUsernameValid(String username) {
-        return username.length() >= 4 && username.length() <= 32;
     }
 
     /**
@@ -196,6 +192,7 @@ public class LoginActivity extends AppCompatActivity {
             showProgress(false);
 
             if (success) {
+                setResult(PostListActivity.ACTIVITY_SUCCESS);
                 finish();
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));

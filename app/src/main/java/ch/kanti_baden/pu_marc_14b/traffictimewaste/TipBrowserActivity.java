@@ -1,7 +1,13 @@
 package ch.kanti_baden.pu_marc_14b.traffictimewaste;
 
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.support.v7.app.AppCompatActivity;
 
 import android.support.v4.app.Fragment;
@@ -94,7 +100,7 @@ public class TipBrowserActivity extends AppCompatActivity {
                 if (fragment == null)
                     return;
 
-                // Change menu icons
+                // Update optionsMenu
                 if (fragment.receivedVotedOn) {
                     if (fragment.votedUp)
                         optionsMenu.getItem(0).setIcon(R.drawable.ic_thumb_up_24px_active);
@@ -109,6 +115,11 @@ public class TipBrowserActivity extends AppCompatActivity {
                     optionsMenu.getItem(0).setIcon(R.drawable.ic_thumb_up_24px_pending);
                     optionsMenu.getItem(1).setIcon(R.drawable.ic_thumb_down_24px_pending);
                 }
+
+                if (!DatabaseLink.instance.isLoggedIn() || !DatabaseLink.instance.USERNAME.equals(fragment.post.ownerName)) {
+                    MenuItem menuItem = optionsMenu.findItem(R.id.action_delete);
+                    menuItem.setEnabled(false);
+                }
             }
         });
     }
@@ -118,6 +129,18 @@ public class TipBrowserActivity extends AppCompatActivity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_tip_browser, menu);
         optionsMenu = menu;
+
+        if (DatabaseLink.instance.isLoggedIn()) {
+            MenuItem menuItem = menu.findItem(R.id.action_login);
+            menuItem.setEnabled(false);
+        } else {
+            MenuItem menuItem = menu.findItem(R.id.action_create);
+            menuItem.setEnabled(false);
+            Drawable icon = menuItem.getIcon();
+            icon.mutate().setColorFilter(Color.GRAY, PorterDuff.Mode.SRC_IN);
+            menuItem.setIcon(icon);
+        }
+
         return true;
     }
 
@@ -125,7 +148,7 @@ public class TipBrowserActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         SectionsPagerAdapter adapter = (SectionsPagerAdapter) viewPager.getAdapter();
         TipFragment fragment = adapter.children[viewPager.getCurrentItem()];
-        int postId = fragment.post.id;
+        final int postId = fragment.post.id;
 
         switch (item.getItemId()) {
             case R.id.action_vote_up:
@@ -138,11 +161,102 @@ public class TipBrowserActivity extends AppCompatActivity {
                 return true;
             case R.id.action_login:
                 Intent intent = new Intent(this, LoginActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, PostListActivity.MUST_RELOAD);
+                return true;
+            case R.id.action_create:
+                Intent intent1 = new Intent(this, TipCreateActivity.class);
+                startActivityForResult(intent1, PostListActivity.MUST_RELOAD);
+                return true;
+            case R.id.action_delete:
+                AlertDialog alertDialog = new AlertDialog.Builder(this)
+                        .setTitle(R.string.action_delete)
+                        .setMessage(R.string.confirmation)
+                        .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                deletePost(postId);
+                            }
+                        })
+                        .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        })
+                        .create();
+                alertDialog.show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == PostListActivity.ACTIVITY_SUCCESS)
+            switch (requestCode) {
+                case PostListActivity.MUST_RELOAD:
+                    recreate();
+                    setResult(PostListActivity.ACTIVITY_SUCCESS);
+                    break;
+            }
+    }
+
+    private void deletePost(int postId) {
+        final ProgressDialog progressDialog = ProgressDialog.show(this,
+                getResources().getString(R.string.progress_submitting),
+                getResources().getString(R.string.progress_please_wait),
+                true, false);
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressDialog.show();
+
+        DatabaseLink.instance.deletePost(new DatabaseLink.DatabaseListener() {
+            @Override
+            void onGetResponse(String json) {
+                progressDialog.dismiss();
+
+                boolean success;
+                String message;
+
+                try {
+                    JSONObject jsonObject = new JSONObject(json);
+                    success = jsonObject.getInt(DatabaseLink.JSON_SUCCESS) == 1;
+                    message = jsonObject.getString(DatabaseLink.JSON_MESSAGE);
+                } catch (JSONException e) {
+                    success = false;
+                    message = e.getMessage();
+                }
+
+                DialogInterface.OnClickListener onClickListener;
+                if (success) {
+                    onClickListener = new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            setResult(PostListActivity.ACTIVITY_SUCCESS);
+                            finish();
+                        }
+                    };
+                } else {
+                    onClickListener = new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    };
+                }
+
+                AlertDialog alertDialog = new AlertDialog.Builder(TipBrowserActivity.this)
+                        .setMessage(message)
+                        .setPositiveButton(R.string.okay, onClickListener)
+                        .create();
+                alertDialog.show();
+            }
+
+            @Override
+            void onError(String errorMsg) {
+                onGetResponse("{\"success\"=0, \"message\"='" + errorMsg + "'}");
+            }
+        }, postId);
     }
 
     private void submitVote(boolean removeVote, int postId, boolean voteUp) {

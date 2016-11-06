@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="action_login">Einloggen</string>
+    <string name="action_login">Anmelden</string>
     <string name="action_register">Registrieren</string>
     <string name="action_search">Suchen</string>
-    <string name="action_sign_in">Anmelden</string>
     <string name="action_sort">Sortieren</string>
     <string name="action_vote_down">Daumen runter</string>
     <string name="action_vote_up">Daumen hoch</string>
-    <string name="button_login">Zum Login</string>
     <string name="error_field_required">Dieses Feld ist obligatorisch</string>
-    <string name="error_incorrect_password">Das Passwort ist inkorrekt</string>
-    <string name="error_invalid_username">Der Benutzername ist ungültig</string>
+    <string name="error_incorrect_password">Authentifizierung fehlgeschlagen</string>
+    <string name="error_invalid_username">Der Benutzername muss zwischen 4 und 32 Zeichen lang sein</string>
     <string name="login_prompt_message">Du bist im Moment nicht angemeldet. Ohne dich anzumelden kannst du nicht neue Posts erstellen oder existierende bewerten.</string>
     <string name="login_prompt_title">Anmelden?</string>
     <string name="prompt_password">Passwort</string>
@@ -24,4 +22,15 @@
     <string name="button_cancel">Abbrechen</string>
     <string name="action_create">Post erstellen</string>
     <string name="action_submit">Erstellen</string>
+    <string name="title_activity_tip_create">Tipp erstellen</string>
+    <string name="content_hint">Inhalt</string>
+    <string name="tags_hint">Tags</string>
+    <string name="okay">Okay</string>
+    <string name="progress_loading_posts">Posts werden geladen…</string>
+    <string name="progress_please_wait">Bitte warten</string>
+    <string name="progress_submitting">Wird gesendet…</string>
+    <string name="action_delete">Löschen</string>
+    <string name="confirmation">Bist du dir sicher?</string>
+    <string name="no">Nein</string>
+    <string name="yes">Ja</string>
 </resources>

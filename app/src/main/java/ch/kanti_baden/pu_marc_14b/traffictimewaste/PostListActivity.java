@@ -6,6 +6,9 @@ import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -43,6 +46,9 @@ enum SORT_TYPE {
  * item details.
  */
 public class PostListActivity extends AppCompatActivity {
+
+    public static final int ACTIVITY_SUCCESS = 3;
+    public static final int MUST_RELOAD = 4;
 
     private static int sortType = 0;
     private static boolean warningDisplayed = false;
@@ -85,6 +91,18 @@ public class PostListActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_post_list, menu);
+
+        // Disable create post button if user isn't logged in
+        if (DatabaseLink.instance.isLoggedIn()) {
+            MenuItem menuItem = menu.findItem(R.id.action_login);
+            menuItem.setEnabled(false);
+        } else {
+            MenuItem menuItem = menu.findItem(R.id.action_create);
+            menuItem.setEnabled(false);
+            Drawable icon = menuItem.getIcon();
+            icon.mutate().setColorFilter(Color.GRAY, PorterDuff.Mode.SRC_IN);
+            menuItem.setIcon(icon);
+        }
 
         // Get the SearchView and set the searchable configuration
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
@@ -129,19 +147,33 @@ public class PostListActivity extends AppCompatActivity {
                 return true;
             case R.id.action_login:
                 Intent intent = new Intent(this, LoginActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, MUST_RELOAD);
                 return true;
             case R.id.action_create:
                 Intent intent1 = new Intent(this, TipCreateActivity.class);
-                startActivity(intent1);
+                startActivityForResult(intent1, MUST_RELOAD);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == ACTIVITY_SUCCESS)
+            switch (requestCode) {
+                case MUST_RELOAD:
+                    recreate();
+                    setResult(ACTIVITY_SUCCESS);
+                    break;
+            }
+    }
+
     private void setupRecyclerViewAsync(@NonNull final ViewGroup viewGroup) {
-        final ProgressDialog progressDialog = ProgressDialog.show(this, "Loading posts...", "Please wait", true, false);
+        final ProgressDialog progressDialog = ProgressDialog.show(this,
+                getResources().getString(R.string.progress_loading_posts),
+                getResources().getString(R.string.progress_please_wait),
+                true, false);
         progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
 
         DatabaseLink.DatabaseListener listener = new DatabaseLink.DatabaseListener() {
@@ -173,8 +205,7 @@ public class PostListActivity extends AppCompatActivity {
                         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
                             @Override
                             public void onRefresh() {
-                                finish();
-                                startActivity(new Intent(PostListActivity.this, PostListActivity.class));
+                                recreate();
                             }
                         });
 
@@ -316,16 +347,15 @@ public class PostListActivity extends AppCompatActivity {
                     mView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            Context context = v.getContext();
-                            Intent intent = new Intent(context, TipBrowserActivity.class);
+                            Intent intent = new Intent(PostListActivity.this, TipBrowserActivity.class);
                             intent.putExtra(TipBrowserActivity.ARG_SCREEN_ID, listIndex);
                             intent.putExtra(TipBrowserActivity.ARG_POSTS, posts);
 
                             // Start TipBrowser with transitions
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                                context.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(PostListActivity.this).toBundle());
+                                PostListActivity.this.startActivityForResult(intent, MUST_RELOAD, ActivityOptions.makeSceneTransitionAnimation(PostListActivity.this).toBundle());
                             } else {
-                                context.startActivity(intent);
+                                PostListActivity.this.startActivityForResult(intent, MUST_RELOAD);
                             }
                         }
                     });

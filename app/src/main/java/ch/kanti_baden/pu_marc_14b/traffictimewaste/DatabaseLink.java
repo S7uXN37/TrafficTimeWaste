@@ -63,6 +63,8 @@ class DatabaseLink {
     private static final String LOGIN_URL = "https://stuxnet.byethost13.com/PU/test_login.php";
     private static final String GET_VOTED_ON_URL = "https://stuxnet.byethost13.com/PU/get_voted_on.php";
     private static final String CREATE_USER_URL = "https://stuxnet.byethost13.com/PU/create_user.php";
+    private static final String CREATE_POST_URL = "https://stuxnet.byethost13.com/PU/create_post.php";
+    private static final String REMOVE_POST_URL = "https://stuxnet.byethost13.com/PU/remove_post.php";
 
     private static SecurePreferences prefs;
     static DatabaseLink instance = null;
@@ -71,7 +73,7 @@ class DatabaseLink {
     private X509TrustManager[] trustManagers;
     private WebView lastWebView;
 
-    private String USERNAME;
+    String USERNAME;
     private String PASSWORD;
 
     DatabaseLink(Activity parentActivity) {
@@ -126,14 +128,18 @@ class DatabaseLink {
         // Read credentials
         USERNAME = prefs.getString(KEY_USERNAME);
         PASSWORD = prefs.getString(KEY_PASSWORD);
-        Log.v("SecurePreferences", "Loaded: username="+USERNAME+", password="+PASSWORD.replaceAll(".", "X")); // TODO leaks confidential data
+        if (USERNAME != null && PASSWORD != null)
+            Log.v("SecurePreferences", "Loaded credentials for: "+USERNAME);
+        else
+            Log.e("SecurePreferences", "Unable to load credentials");
+
 
         if (USERNAME == null || PASSWORD == null) {
             // Open dialog prompting login
             AlertDialog dialog = new AlertDialog.Builder(parentActivity)
                     .setMessage(R.string.login_prompt_message)
                     .setTitle(R.string.login_prompt_title)
-                    .setPositiveButton(R.string.button_login, new DialogInterface.OnClickListener() {
+                    .setPositiveButton(R.string.action_login, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             // Open LoginActivity
@@ -170,6 +176,12 @@ class DatabaseLink {
     }
     void getPostsWithTag(DatabaseListener databaseListener, String tag) {
         loadUrl(databaseListener, GET_WITH_TAG_URL, "tag_name=" + tag);
+    }
+    void createPost(DatabaseListener listener, String content, String tags) {
+        loadUrl(listener, CREATE_POST_URL, "post_content=" + content + "&tags=" + tags + "&username=" + USERNAME + "&password=" + PASSWORD);
+    }
+    void deletePost(DatabaseListener listener, int postId) {
+        loadUrl(listener, REMOVE_POST_URL, "post_id=" + postId + "&username=" + USERNAME + "&password=" + PASSWORD);
     }
     private void createUser(DatabaseListener listener, String username, String password) {
         loadUrl(listener, CREATE_USER_URL, "username=" + username + "&password=" + password);
@@ -245,14 +257,21 @@ class DatabaseLink {
         loadUrl(listener, GET_VOTED_ON_URL, "username=" + USERNAME + "&password=" + PASSWORD + "&post_id=" + postId);
     }
 
+    boolean isLoggedIn() {
+        return USERNAME != null && PASSWORD != null;
+    }
+
     static void saveCredentials(String username, String password) {
+        if (username == null || password == null)
+            return;
+
         prefs.put(KEY_USERNAME, username);
         prefs.put(KEY_PASSWORD, password);
 
         instance.USERNAME = username;
         instance.PASSWORD = password;
 
-        Log.v("SecurePreferences", "Saving: username="+username+", password=" + password.replaceAll(".", "X")); // TODO leaks confidential data
+        Log.v("SecurePreferences", "Saving credentials for: "+username);
     }
 
     private void loadUrl(
@@ -339,7 +358,7 @@ class DatabaseLink {
         Log.v("TrafficTimeWaste", "JSON: " + json);
 
         if (json.getInt(JSON_SUCCESS) != 1)
-            throw new IllegalArgumentException("JSON indicating failure in database access");
+            return new Post[0];
 
         JSONArray postsJson = json.getJSONArray(JSON_POSTS);
         ArrayList<Post> posts = new ArrayList<>();

@@ -26,17 +26,25 @@
         android:layout_alignParentStart="true"
         tools:ignore="HardcodedText" />
 
-    <eu.fiskur.chipcloud.ChipCloud
-        xmlns:chipcloud="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/tagView"
-        android:layout_width="match_parent"
-        chipcloud:selectMode="required"
-        android:layout_height="wrap_content" />
+    <!--<HorizontalScrollView-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:id="@+id/horizontalScroll">-->
+
+        <eu.fiskur.chipcloud.ChipCloud
+            xmlns:chipcloud="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/tagView"
+            android:layout_width="wrap_content"
+            chipcloud:selectMode="required"
+            android:layout_height="wrap_content" />
+
+    <!--</HorizontalScrollView>-->
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/tagView"
+        android:layout_above="@+id/date"
         android:layout_centerHorizontal="true" >
 
         <ch.kanti_baden.pu_marc_14b.traffictimewaste.TipView

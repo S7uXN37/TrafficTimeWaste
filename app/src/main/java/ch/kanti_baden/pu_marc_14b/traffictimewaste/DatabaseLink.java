@@ -427,4 +427,22 @@ class DatabaseLink {
         return activity;
     }
 
+    static String encodeSpecial(String str) {
+        str = str.replaceAll("ä", "[ae]");
+        str = str.replaceAll("ö", "[oe]");
+        str = str.replaceAll("ü", "[ue]");
+        str = str.replaceAll("\"", "[quot]");
+        str = str.replaceAll("=", "[eq]");
+        return str;
+    }
+
+    static String decodeSpecial(String str) {
+        str = str.replaceAll("\\[ae\\]", "ä");
+        str = str.replaceAll("\\[oe\\]", "ö");
+        str = str.replaceAll("\\[ue\\]", "ü");
+        str = str.replaceAll("\\[quot\\]", "\"");
+        str = str.replaceAll("\\[eq\\]", "=");
+        return str;
+    }
+
 }

@@ -49,6 +49,7 @@ public class TipView extends LinearLayout {
     }
 
     void setContent(String text) {
+        text = DatabaseLink.decodeSpecial(text);
         text = removeTitle(text);
 
         TextView textView = new TextView(getContext());

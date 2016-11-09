@@ -148,6 +148,9 @@ public class TipBrowserActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         SectionsPagerAdapter adapter = (SectionsPagerAdapter) viewPager.getAdapter();
         TipFragment fragment = adapter.children[viewPager.getCurrentItem()];
+        if (fragment == null || fragment.post == null)
+            return false;
+
         final int postId = fragment.post.id;
 
         switch (item.getItemId()) {

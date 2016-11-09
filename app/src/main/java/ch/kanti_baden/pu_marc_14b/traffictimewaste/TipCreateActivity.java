@@ -39,7 +39,7 @@ public class TipCreateActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_submit:
-                String content = postContent.getText().toString();
+                String content = DatabaseLink.encodeSpecial(postContent.getText().toString());
                 String tags = editTag.getInput();
 
                 final ProgressDialog progressDialog = ProgressDialog.show(this,

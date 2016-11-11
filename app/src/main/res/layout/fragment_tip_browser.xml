@@ -35,7 +35,7 @@
             xmlns:chipcloud="http://schemas.android.com/apk/res-auto"
             android:id="@+id/tagView"
             android:layout_width="wrap_content"
-            chipcloud:selectMode="required"
+            chipcloud:selectMode="single"
             android:layout_height="wrap_content" />
 
     <!--</HorizontalScrollView>-->

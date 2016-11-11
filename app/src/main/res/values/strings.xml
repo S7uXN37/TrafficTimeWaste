@@ -49,9 +49,9 @@
 
     <!-- Strings related to licenses and the About Screen-->
     <string name="action_formatting">Formatting</string>
-    <string name="info_formatting">You can format your post as follows:
-        <b>[SPOILER]</b> is replaced with a button that hides all following text
-        <b>[IMG http://&#8230;]</b> is replaced with a picture from the specified URL
+    <string name="info_formatting">You can format your post as follows:\n
+        <b>[SPOILER]</b> is replaced with a button that hides all following text\n
+        <b>[IMG http://&#8230;]</b> is replaced with a picture from the specified URL\n
         <b>[TITLE:Your title here]</b> is removed in your post and displays \"Your title here\" in the overview</string>
     <string name="action_about">About</string>
     <string name="info_about">This app was created in 12 weeks as a preparation for our matriculation projects by: Simon Baumgartner, Albin Bommer &amp; Marc Himmelberger\n

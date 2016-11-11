@@ -153,6 +153,20 @@ public class PostListActivity extends AppCompatActivity {
                 Intent intent1 = new Intent(this, TipCreateActivity.class);
                 startActivityForResult(intent1, MUST_RELOAD);
                 return true;
+            case R.id.action_about:
+                AlertDialog alertDialog = new AlertDialog.Builder(this)
+                        .setTitle(R.string.action_about)
+                        .setMessage(R.string.info_about)
+                        .create();
+                alertDialog.show();
+                return true;
+            case R.id.action_licenses:
+                AlertDialog alertDialog2 = new AlertDialog.Builder(this)
+                        .setTitle(R.string.action_licenses)
+                        .setMessage(R.string.info_licenses)
+                        .create();
+                alertDialog2.show();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }

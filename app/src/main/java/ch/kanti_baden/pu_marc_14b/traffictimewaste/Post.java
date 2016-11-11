@@ -7,22 +7,22 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 
-public class Post implements Serializable {
+class Post implements Serializable {
 
     public final int id;
     public final String content;
-    public final String postedAt;
-    public final long postedAtMillis;
-    public final String ownerName;
-    public final int votesUp;
-    public final int votesDown;
-    public final String[] tags;
-    public boolean clickable = true;
+    final String postedAt;
+    final long postedAtMillis;
+    final String ownerName;
+    final int votesUp;
+    final int votesDown;
+    final String[] tags;
+    boolean clickable = true;
 
-    public Post(int postId, String text, String timePosted, String username,
+    Post(int postId, String text, String timePosted, String username,
                 int upvotes, int downvotes, final String[] postTags) {
         id = postId;
-        content = text;
+        content = DatabaseLink.decodeSpecial(text);
         postedAt = timePosted;
         postedAtMillis = toMillis(timePosted);
         ownerName = username;

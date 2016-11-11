@@ -35,8 +35,8 @@ public class TipView extends LinearLayout {
     }
 
     private static final String BUTTON_TRIGGER = "[SPOILER]";
-    private static final String IMAGE_TRIGGER = "[BILD";
-    public static final String TITLE_TRIGGER = "[TITEL:";
+    private static final String IMAGE_TRIGGER = "[IMG";
+    public static final String TITLE_TRIGGER = "[TITLE:";
     private static final ViewGroup.LayoutParams LAYOUT_PARAMS;
 
     static {
@@ -49,7 +49,6 @@ public class TipView extends LinearLayout {
     }
 
     void setContent(String text) {
-        text = DatabaseLink.decodeSpecial(text);
         text = removeTitle(text);
 
         TextView textView = new TextView(getContext());

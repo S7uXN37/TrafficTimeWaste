@@ -97,6 +97,13 @@ public class TipCreateActivity extends AppCompatActivity {
                     }
                 }, content, tags);
                 return true;
+            case R.id.action_formatting:
+                AlertDialog alertDialog = new AlertDialog.Builder(this)
+                        .setTitle(R.string.action_formatting)
+                        .setMessage(R.string.info_formatting)
+                        .create();
+                alertDialog.show();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }

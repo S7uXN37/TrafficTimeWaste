@@ -33,4 +33,12 @@
     <string name="confirmation">Bist du dir sicher?</string>
     <string name="no">Nein</string>
     <string name="yes">Ja</string>
+    <string name="info_about">Diese App wurde während 12 Wochen als Vorbereitung für unsere Maturaarbeiten erstellt von: Simon Baumgartner, Albin bommer $amp; Marc Himmelberger</string>
+    <string name="action_licenses">Lizenzen</string>
+    <string name="action_formatting">Formatierung</string>
+    <string name="action_about">Über</string>
+    <string name="info_formatting">Du kannst deine Posts wie folgt formatieren:
+        <b>[SPOILER]</b> wird durch einen Knopf ersetzt, der allen folgenden Text versteckt bis er gedrückt wird
+        <b>[IMG http://&#8230;]</b> wird mit einem Bild von der angegebenen URL ersetzt
+        <b>[TITLE:Hier könnte ihr Titel stehen]</b> wird aus dem Post entfernt und "Hier könnte ihr Titel stehen" wird in der Übersicht angezeigt</string>
 </resources>

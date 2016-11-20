@@ -62,21 +62,21 @@ class SecurePreferences {
      * the plaintext value of the value which can be used to decipher the value.
      * @throws GeneralSecurityException
      */
-    SecurePreferences(Context context, String secureKey) throws GeneralSecurityException {
+    SecurePreferences(Context context, String secureKey, String ivStr) throws GeneralSecurityException {
         this.writer = Cipher.getInstance(TRANSFORMATION);
         this.reader = Cipher.getInstance(TRANSFORMATION);
         this.keyWriter = Cipher.getInstance(KEY_TRANSFORMATION);
 
-        initCiphers(secureKey);
+        initCiphers(secureKey, ivStr);
 
         this.preferences = context.getSharedPreferences("credentials", Context.MODE_PRIVATE);
 
-        this.encryptKeys = true;
+        this.encryptKeys = false; // A value of "true" WILL fail, as the key is not recognized after a restart of the app (don't ask me why ^^)
     }
 
-    private void initCiphers(String secureKey) throws NoSuchAlgorithmException, InvalidKeyException,
+    private void initCiphers(String secureKey, String ivStr) throws NoSuchAlgorithmException, InvalidKeyException,
             InvalidAlgorithmParameterException {
-        IvParameterSpec ivSpec = getIv();
+        IvParameterSpec ivSpec = getIv(ivStr);
         SecretKeySpec secretKey = getSecretKey(secureKey);
 
         writer.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
@@ -84,10 +84,8 @@ class SecurePreferences {
         keyWriter.init(Cipher.ENCRYPT_MODE, secretKey);
     }
 
-    private IvParameterSpec getIv() {
+    private IvParameterSpec getIv(String ivStr) {
         byte[] iv = new byte[writer.getBlockSize()];
-
-        String ivStr = "fzjJM odasii_JUslfjvsaofSG5ufihAS/f";
         byte[] bytes = ivStr.getBytes(StandardCharsets.UTF_8);
 
         System.arraycopy(bytes, 0, iv, 0, writer.getBlockSize());

@@ -41,4 +41,8 @@
         <b>[SPOILER]</b> wird durch einen Knopf ersetzt, der allen folgenden Text versteckt bis er gedrückt wird\n
         <b>[IMG http://&#8230;]</b> wird mit einem Bild von der angegebenen URL ersetzt\n
         <b>[TITLE:Hier könnte ihr Titel stehen]</b> wird aus dem Post entfernt und "Hier könnte ihr Titel stehen" wird in der Übersicht angezeigt</string>
+    <string name="privacy_disclaimer">
+        <b>Wir garantieren nicht, dass deine Daten geheim bleiben, nachdem du sie hier eingegeben hast.</b>\n
+        Obwohl wir die Daten verschlüsseln und sie nie darstellen oder über eine unverschlüsselte Verbindung verschicken, übernehmen wir keine Verantwortung falls deine Daten öffentlich sichtbar werden.
+    </string>
 </resources>

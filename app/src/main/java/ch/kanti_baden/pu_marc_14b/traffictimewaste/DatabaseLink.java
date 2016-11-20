@@ -7,7 +7,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.http.SslCertificate;
 import android.net.http.SslError;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.util.SparseArray;
 import android.webkit.JavascriptInterface;
@@ -33,6 +35,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Random;
 
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -42,6 +45,7 @@ class DatabaseLink {
 
     private static final String KEY_USERNAME = "username";
     private static final String KEY_PASSWORD = "password";
+    private static final String KEY_GENERATOR = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXZY_-., 1234567890/?!";
 
     private static final String JSON_POSTS = "posts";
     private static final String JSON_ID = "id";
@@ -162,10 +166,16 @@ class DatabaseLink {
 
     static void initPreferences(Activity activity) {
         try {
-            StringBuilder key = new StringBuilder("MyTopSecretKey");
-            for (int i = 0; i < 43; i+=3)
-                key.append(key.charAt(i%key.length()));
-            prefs = new SecurePreferences(activity, key.toString());
+            Random rand = new Random(Installation.id(activity).hashCode());
+            StringBuilder key = new StringBuilder("SampleKey");
+            int m = Build.VERSION.SDK_INT;
+            for (int i = 0; i < 113; i+=1) {
+                key.append(KEY_GENERATOR.charAt(m % KEY_GENERATOR.length()));
+                key.append(KEY_GENERATOR.charAt(i % KEY_GENERATOR.length()));
+                key.append(key.charAt(i % key.length()));
+                m += rand.nextInt()/513;
+            }
+            prefs = new SecurePreferences(activity, key.toString(), key.reverse().insert(1, Build.VERSION.SDK_INT).toString());
         } catch (GeneralSecurityException e) {
             Log.e("DatabaseLink", "Could not initialize SecurePreferences", e);
         }

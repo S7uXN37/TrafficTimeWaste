@@ -68,6 +68,9 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+        TextView mDisclaimerView = (TextView) findViewById(R.id.disclaimerText);
+        mDisclaimerView.setText(R.string.privacy_disclaimer);
+
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
     }

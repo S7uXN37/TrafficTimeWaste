@@ -452,6 +452,7 @@ class DatabaseLink {
         str = str.replaceAll("\\[ue\\]", "ü");
         str = str.replaceAll("\\[quot\\]", "\"");
         str = str.replaceAll("\\[eq\\]", "=");
+        str = str.replaceAll("\\[br\\]", "\n");
         return str;
     }
 

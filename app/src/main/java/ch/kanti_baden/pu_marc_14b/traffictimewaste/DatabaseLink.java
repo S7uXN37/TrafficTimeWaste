@@ -173,7 +173,7 @@ class DatabaseLink {
                 key.append(KEY_GENERATOR.charAt(m % KEY_GENERATOR.length()));
                 key.append(KEY_GENERATOR.charAt(i % KEY_GENERATOR.length()));
                 key.append(key.charAt(i % key.length()));
-                m += rand.nextInt()/513;
+                m += Math.abs(rand.nextInt()/513);
             }
             prefs = new SecurePreferences(activity, key.toString(), key.reverse().insert(1, Build.VERSION.SDK_INT).toString());
         } catch (GeneralSecurityException e) {

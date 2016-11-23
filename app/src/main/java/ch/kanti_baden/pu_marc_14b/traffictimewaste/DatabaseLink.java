@@ -441,6 +441,9 @@ class DatabaseLink {
         str = str.replaceAll("ä", "[ae]");
         str = str.replaceAll("ö", "[oe]");
         str = str.replaceAll("ü", "[ue]");
+        str = str.replaceAll("Ä", "[Ae]");
+        str = str.replaceAll("Ö", "[Oe]");
+        str = str.replaceAll("Ü", "[Ue]");
         str = str.replaceAll("\"", "[quot]");
         str = str.replaceAll("=", "[eq]");
         return str;
@@ -450,6 +453,9 @@ class DatabaseLink {
         str = str.replaceAll("\\[ae\\]", "ä");
         str = str.replaceAll("\\[oe\\]", "ö");
         str = str.replaceAll("\\[ue\\]", "ü");
+        str = str.replaceAll("\\[Ae\\]", "Ä");
+        str = str.replaceAll("\\[Oe\\]", "Ö");
+        str = str.replaceAll("\\[Ue\\]", "Ü");
         str = str.replaceAll("\\[quot\\]", "\"");
         str = str.replaceAll("\\[eq\\]", "=");
         str = str.replaceAll("\\[br\\]", "\n");

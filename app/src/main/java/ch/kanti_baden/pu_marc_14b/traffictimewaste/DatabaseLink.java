@@ -168,12 +168,13 @@ class DatabaseLink {
         try {
             Random rand = new Random(Installation.id(activity).hashCode());
             StringBuilder key = new StringBuilder("SampleKey");
-            int m = Build.VERSION.SDK_INT;
+            int m = Math.abs(Build.VERSION.SDK_INT);
             for (int i = 0; i < 113; i+=1) {
                 key.append(KEY_GENERATOR.charAt(m % KEY_GENERATOR.length()));
                 key.append(KEY_GENERATOR.charAt(i % KEY_GENERATOR.length()));
                 key.append(key.charAt(i % key.length()));
-                m += Math.abs(rand.nextInt()/513);
+                m += rand.nextInt()/513;
+                m = Math.abs(m);
             }
             prefs = new SecurePreferences(activity, key.toString(), key.reverse().insert(1, Build.VERSION.SDK_INT).toString());
         } catch (GeneralSecurityException e) {
@@ -441,9 +442,6 @@ class DatabaseLink {
         str = str.replaceAll("ä", "[ae]");
         str = str.replaceAll("ö", "[oe]");
         str = str.replaceAll("ü", "[ue]");
-        str = str.replaceAll("Ä", "[Ae]");
-        str = str.replaceAll("Ö", "[Oe]");
-        str = str.replaceAll("Ü", "[Ue]");
         str = str.replaceAll("\"", "[quot]");
         str = str.replaceAll("=", "[eq]");
         return str;
@@ -453,9 +451,6 @@ class DatabaseLink {
         str = str.replaceAll("\\[ae\\]", "ä");
         str = str.replaceAll("\\[oe\\]", "ö");
         str = str.replaceAll("\\[ue\\]", "ü");
-        str = str.replaceAll("\\[Ae\\]", "Ä");
-        str = str.replaceAll("\\[Oe\\]", "Ö");
-        str = str.replaceAll("\\[Ue\\]", "Ü");
         str = str.replaceAll("\\[quot\\]", "\"");
         str = str.replaceAll("\\[eq\\]", "=");
         str = str.replaceAll("\\[br\\]", "\n");

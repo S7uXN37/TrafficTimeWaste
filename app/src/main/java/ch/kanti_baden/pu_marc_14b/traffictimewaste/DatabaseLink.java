@@ -92,18 +92,14 @@ class DatabaseLink {
             // Load CA certificate
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
-            Certificate ca;
-            try (InputStream caInput =
-                         new BufferedInputStream(parentActivity.getResources().openRawResource(R.raw.cert_intermediate_ca))) {
-                ca = cf.generateCertificate(caInput);
-            } catch (IOException e) {
-                throw new IOException("Failed to load CA certificate", e);
-            }
+            Certificate ca1 = loadCertificate(parentActivity, cf, R.raw.cert_intermediate_ca);
+            Certificate ca2 = loadCertificate(parentActivity, cf, R.raw.server);
 
             // Create KeyStore from trusted CA
             KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
             keyStore.load(null, null);
-            keyStore.setCertificateEntry("ca", ca);
+            keyStore.setCertificateEntry("ca1", ca1);
+            keyStore.setCertificateEntry("ca2", ca2);
 
             // Create TrustManagerFactory from KeyStore
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -162,6 +158,18 @@ class DatabaseLink {
         }
 
         instance = this;
+    }
+
+    private static Certificate loadCertificate(Activity parentActivity, CertificateFactory cf, int id)
+        throws IOException, CertificateException {
+        Certificate ca;
+        try (InputStream caInput =
+                     new BufferedInputStream(parentActivity.getResources().openRawResource(id))) {
+            ca = cf.generateCertificate(caInput);
+        } catch (IOException e) {
+            throw new IOException("Failed to load CA certificate", e);
+        }
+        return ca;
     }
 
     static void initPreferences(Activity activity) {
